@@ -1,0 +1,25 @@
+{
+  "name": "@wssch/cli",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "wssch - Workspace Sandbox for AI",
+  "main": "dist/index.js",
+  "bin": {
+    "wssch": "./dist/wssch.cjs"
+  },
+  "scripts": {
+    "build": "tsc",
+    "bundle": "esbuild src/index.ts --bundle --platform=node --outfile=dist/wssch --format=esm",
+    "bundle:bin": "esbuild src/index.ts --bundle --platform=node --outfile=dist/wssch.cjs --format=cjs && (echo '#!/usr/bin/env node'; cat dist/wssch.cjs) > dist/wssch.tmp && mv dist/wssch.tmp dist/wssch.cjs && chmod +x dist/wssch.cjs",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "esbuild": "^0.28.0",
+    "typescript": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
