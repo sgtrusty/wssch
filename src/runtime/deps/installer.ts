@@ -1,13 +1,13 @@
 import { logger } from "../../lib/logger.js";
-import type { Config, DepName } from "../../lib/config.js";
-import type { Dependency, RuntimeComponent } from "./base.js";
+import { configService, type DepName } from "../../config/index.js";
+import type { Dependency, RuntimeComponent } from "./dep.interface.js";
 import { createRtkDependency, RtkClient } from "./optimizer/rtk.js";
 import { createBunDependency } from "./toolkit/bun.js";
 import { createLocalRagClient } from "./mcp/localRag.js";
 import { createOllamaProxyDependency } from "./proxy/ollamaProxy.js";
 import { createMcpLocalAgentDependency } from "./mcp/localAgent.js";
 
-const DEP_CREATORS: Record<DepName, (config: Config) => Dependency> = {
+const DEP_CREATORS: Record<DepName, () => Dependency> = {
   rtk: createRtkDependency,
   bun: createBunDependency,
   ollama: createOllamaProxyDependency,
@@ -18,14 +18,15 @@ export class DepsInstaller {
   private readonly deps: Dependency[] = [];
   private rtkClient: RtkClient | null = null;
 
-  constructor(private readonly config: Config) {
-    for (const depName of config.deps) {
+  constructor() {
+    const runtime = configService.runtime;
+    for (const depName of runtime.deps) {
       const createDep = DEP_CREATORS[depName];
       if (createDep) {
-        this.deps.push(createDep(config));
+        this.deps.push(createDep());
       }
     }
-    logger.debug("deps", `Initialized deps: ${config.deps.join(", ")}`);
+    logger.debug("deps", `Initialized deps: ${runtime.deps.join(", ")}`);
   }
 
   async installAll(): Promise<void> {
@@ -70,9 +71,9 @@ export class DepsInstaller {
         "deps",
         `Installing ${dep.name} (synchronous, may require user interaction)...`,
       );
-      await dep.install(this.config);
+      await dep.install();
       if (dep.postInstall) {
-        await dep.postInstall(this.config);
+        await dep.postInstall();
       }
       return;
     }
@@ -83,7 +84,7 @@ export class DepsInstaller {
       return;
     }
     logger.info("deps", `Installing ${dep.name}...`);
-    await dep.install(this.config);
+    await dep.install();
   }
 
   async getRtkClient(): Promise<RtkClient | null> {
@@ -101,16 +102,14 @@ export class DepsInstaller {
   }
 
   createLocalRagClient(): RuntimeComponent {
-    return createLocalRagClient(this.config);
+    return createLocalRagClient();
   }
 
   isDepAvailable(name: string): boolean {
-    return this.deps.some(
-      (d) => d.name.toLowerCase() === name.toLowerCase(),
-    );
+    return this.deps.some((d) => d.name.toLowerCase() === name.toLowerCase());
   }
 }
 
-export function createDepsInstaller(config: Config): DepsInstaller {
-  return new DepsInstaller(config);
+export function createDepsInstaller(): DepsInstaller {
+  return new DepsInstaller();
 }

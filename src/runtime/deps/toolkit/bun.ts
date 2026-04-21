@@ -3,8 +3,8 @@ import { mkdir, access, constants, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { logger } from "../../../lib/logger.js";
-import type { Config } from "../../../lib/config.js";
-import type { Dependency } from "../base.js";
+import { configService } from "../../../config/index.js";
+import type { Dependency } from "../dep.interface.js";
 import { downloadUrl, extractZip, moveExtractedBin } from "../installUtil.js";
 
 const REPO = "oven-sh/bun";
@@ -61,8 +61,8 @@ export class BunDependency implements Dependency {
   readonly name = "Bun (toolkit)";
   readonly binPath: string;
 
-  constructor(private readonly config: Config) {
-    this.binPath = `${config.wssBinDir}/bun`;
+  constructor() {
+    this.binPath = `${configService.paths.wssBinDir}/bun`;
   }
 
   async isAvailable(): Promise<boolean> {
@@ -80,6 +80,8 @@ export class BunDependency implements Dependency {
   }
 
   async install(): Promise<void> {
+    const paths = configService.paths;
+
     if (await this.isAvailable()) {
       logger.info("subdep", "Bun already available");
       return;
@@ -100,17 +102,16 @@ export class BunDependency implements Dependency {
 
     await downloadUrl(url, archive);
 
-    await extractZip(archive, this.config.wssBinDir);
+    await extractZip(archive, paths.wssBinDir);
 
-    const extractedFolder = join(this.config.wssBinDir, `bun-${target}`);
-    await moveExtractedBin(extractedFolder, "bun", this.config.wssBinDir);
+    const extractedFolder = join(paths.wssBinDir, `bun-${target}`);
+    await moveExtractedBin(extractedFolder, "bun", paths.wssBinDir);
 
-    logger.check("subdep", `Bun installed to ${this.config.wssBinDir}`);
+    logger.check("subdep", `Bun installed to ${paths.wssBinDir}`);
     await rm(archive, { force: true });
   }
-
 }
 
-export function createBunDependency(config: Config): BunDependency {
-  return new BunDependency(config);
+export function createBunDependency(): BunDependency {
+  return new BunDependency();
 }

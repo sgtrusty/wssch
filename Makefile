@@ -1,5 +1,8 @@
 .PHONY: help build install dev clean test
 
+DEST := /usr/local/bin/wssch
+SRC := dist/wssch.cjs
+
 help:
 	@echo "wssch - Workspace Sandbox for AI"
 	@echo ""
@@ -17,11 +20,17 @@ dev:
 	bun run dev
 
 install: 
-	@echo "Installing wssch to /usr/local/bin/wssch..."
-	@cp dist/wssch.cjs /usr/local/bin/wssch
-	@chmod +x /usr/local/bin/wssch
-	@echo "Installed wssch to /usr/local/bin/wssch"
-	@echo "Make sure /usr/local/bin is in your PATH"
+	@echo "Checking installation requirements..."
+	@if [ ! -f $(DEST) ]; then \
+		echo "Destination does not exist. Requesting sudo for initial install..."; \
+		sudo cp $(SRC) $(DEST); \
+		sudo chmod +x $(DEST); \
+	else \
+		echo "Updating existing installation..."; \
+		cp $(SRC) $(DEST); \
+		chmod +x $(DEST); \
+	fi
+	@echo "Successfully installed wssch to $(DEST)"
 
 clean:
 	rm -rf dist

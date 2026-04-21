@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import type { Config } from "../../../lib/config.js";
-import type { Dependency } from "../base.js";
+import { configService } from "../../../config/index.js";
+import type { Dependency } from "../dep.interface.js";
 
 interface OpencodeJson {
   mcp?: Record<string, unknown>;
@@ -11,13 +11,14 @@ export class McpLocalAgentDependency implements Dependency {
   readonly name = "MCP Local Agent";
   readonly binPath: string;
 
-  constructor(private readonly config: Config) {
+  constructor() {
     this.binPath = "";
   }
 
   async isAvailable(): Promise<boolean> {
+    const paths = configService.paths;
     const opencodeJsonPath = join(
-      this.config.wssOpencodeConfigDir,
+      paths.wssOpencodeConfigDir,
       "opencode.json",
     );
 
@@ -27,33 +28,34 @@ export class McpLocalAgentDependency implements Dependency {
 
     try {
       const content = readFileSync(opencodeJsonPath, "utf-8");
-      const config: OpencodeJson = JSON.parse(content);
-      return !!(config.mcp && config.mcp["mcp-local-agent"]);
+      const opencodeJson: OpencodeJson = JSON.parse(content);
+      return !!(opencodeJson.mcp && opencodeJson.mcp["mcp-local-agent"]);
     } catch {
       return false;
     }
   }
 
   async install(): Promise<void> {
+    const paths = configService.paths;
     const opencodeJsonPath = join(
-      this.config.wssOpencodeConfigDir,
+      paths.wssOpencodeConfigDir,
       "opencode.json",
     );
 
-    let config: OpencodeJson = {};
+    let opencodeJson: OpencodeJson = {};
 
     if (existsSync(opencodeJsonPath)) {
       try {
-        config = JSON.parse(readFileSync(opencodeJsonPath, "utf-8"));
+        opencodeJson = JSON.parse(readFileSync(opencodeJsonPath, "utf-8"));
       } catch {}
     }
 
-    if (!config.mcp) {
-      config.mcp = {};
+    if (!opencodeJson.mcp) {
+      opencodeJson.mcp = {};
     }
 
-    if (!config.mcp["mcp-local-agent"]) {
-      config.mcp["mcp-local-agent"] = {
+    if (!opencodeJson.mcp["mcp-local-agent"]) {
+      opencodeJson.mcp["mcp-local-agent"] = {
         type: "local",
         command: ["bun", "x", "mcp-local-rag"],
         enabled: true,
@@ -65,7 +67,7 @@ export class McpLocalAgentDependency implements Dependency {
       };
     }
 
-    writeFileSync(opencodeJsonPath, JSON.stringify(config, null, 2));
+    writeFileSync(opencodeJsonPath, JSON.stringify(opencodeJson, null, 2));
   }
 
   preDeps(): string[] {
@@ -73,8 +75,6 @@ export class McpLocalAgentDependency implements Dependency {
   }
 }
 
-export function createMcpLocalAgentDependency(
-  config: Config,
-): McpLocalAgentDependency {
-  return new McpLocalAgentDependency(config);
+export function createMcpLocalAgentDependency(): McpLocalAgentDependency {
+  return new McpLocalAgentDependency();
 }

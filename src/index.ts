@@ -1,17 +1,19 @@
 import { createOrchestrator } from "./runtime/orchestrator.js";
 import { scaffold } from "./commands/scaffold.js";
 import { logger, initLogger } from "./lib/logger.js";
-import { parseArgs, dumpConfig, type Config } from "./lib/config.js";
+import { configService } from "./config/index.js";
 import { preflight, ensureDirs } from "./core/lifecycle.js";
 import { createDepsInstaller } from "./runtime/deps/installer.js";
 import { isBwrapAvailable } from "./sandbox/bwrap.js";
 
 export { logger, initLogger } from "./lib/logger.js";
-export { parseArgs } from "./lib/config.js";
 export { preflight, ensureDirs } from "./core/lifecycle.js";
 
-export async function runWithSandbox(config: Config): Promise<void> {
-  initLogger({ prefix: "sandbox", verbose: config.verbose });
+export async function runWithSandbox(): Promise<void> {
+  const args = configService.args;
+  const paths = configService.paths;
+
+  initLogger({ prefix: "sandbox", verbose: args.verbose });
 
   if (!isBwrapAvailable()) {
     logger.fail(
@@ -21,61 +23,43 @@ export async function runWithSandbox(config: Config): Promise<void> {
     process.exit(1);
   }
 
-  await ensureDirs(config);
-  const checks = await preflight(config);
+  await ensureDirs();
+  const checks = await preflight();
   if (!checks) {
     logger.fail("sandbox", "Preflight checks failed");
     process.exit(1);
   }
 
   const { spawnWithSandbox } = await import("./sandbox/bwrap.js");
-  spawnWithSandbox(config);
+  spawnWithSandbox();
 }
 
-export async function runOrchestrator(config: Config): Promise<void> {
-  initLogger({ prefix: "wssch", verbose: config.verbose });
+export async function runOrchestrator(): Promise<void> {
+  const args = configService.args;
+  const paths = configService.paths;
+
+  initLogger({ prefix: "wssch", verbose: args.verbose });
 
   logger.info("startup", "wssch CLI starting...");
-  logger.info("startup", `Project: ${config.targetDir}`);
-  logger.info("startup", `Config: ${config.wssConfigDir}`);
+  logger.info("startup", `Project: ${args.targetDir}`);
+  logger.info("startup", `Config: ${paths.wssConfigDir}`);
   logger.info(
     "startup",
     `In Sandbox: ${process.env.WSS_IN_SANDBOX === "true"}`,
   );
 
-  dumpConfig(config);
+  await ensureDirs();
 
-  // Ensure directories exist
-  await ensureDirs(config);
-
-  // Scaffold
   scaffold({
-    targetDir: config.targetDir,
-    wssConfigDir: config.wssConfigDir,
-    opencodeDir: config.wssOpencodeConfigDir,
-    wssBinDir: config.wssBinDir,
-    noRtk: config.noRtk,
-    noRag: config.noRag,
+    targetDir: args.targetDir,
+    wssConfigDir: paths.wssConfigDir,
+    opencodeDir: paths.wssOpencodeConfigDir,
+    wssBinDir: paths.wssBinDir,
+    noRtk: args.noRtk,
+    noRag: args.noRag,
   });
 
-  // Create session
-
-  // Start orchestrator
-  const orchestrator = await createOrchestrator({
-    targetDir: config.targetDir,
-    handlerDir: config.orchestratorDir,
-    wssConfigDir: config.wssConfigDir,
-    wssOpencodeConfigDir: config.wssOpencodeConfigDir,
-    wssBinDir: config.wssBinDir,
-    rtkBin: config.rtkBin,
-    ollamaUrl: config.ollamaUrl,
-    embeddingModel: config.embedModel,
-    noRtk: config.noRtk,
-    noRag: config.noRag,
-    noOllama: config.noOllama,
-    opencodeManagesMcp: process.env.OPENCODE_MANAGES_MCP === "true",
-    deps: config.deps,
-  });
+  const orchestrator = await createOrchestrator();
 
   const cleanup = async () => {
     logger.info("startup", "Cleaning up...");
@@ -99,38 +83,41 @@ export async function runOrchestrator(config: Config): Promise<void> {
 async function main() {
   const args = process.argv.slice(2);
   const command = args[0] || "run";
-  const config = await parseArgs(args);
+  configService.init(args);
 
   if (command === "run") {
     if (process.env.WSS_IN_SANDBOX === "true") {
-      await runOrchestrator(config);
+      await runOrchestrator();
       return;
     }
 
     if (args.includes("--no-sandbox")) {
       logger.warn("startup", "Running without sandbox!");
-      await runOrchestrator(config);
+      await runOrchestrator();
     } else {
-      await runWithSandbox(config);
+      await runWithSandbox();
     }
     return;
   }
 
   if (command === "orchestrate" || command === "orcs") {
-    await runOrchestrator(config);
+    await runOrchestrator();
     return;
   }
 
   if (command === "init") {
+    const args = configService.args;
+    const paths = configService.paths;
+
     initLogger({ prefix: "wssch" });
-    await ensureDirs(config);
+    await ensureDirs();
     scaffold({
-      targetDir: config.targetDir,
-      opencodeDir: `${config.wssConfigDir}/opencode-config`,
-      wssConfigDir: config.wssConfigDir,
-      wssBinDir: config.wssBinDir,
-      noRtk: config.noRtk,
-      noRag: config.noRag,
+      targetDir: args.targetDir,
+      opencodeDir: paths.wssOpencodeConfigDir,
+      wssConfigDir: paths.wssConfigDir,
+      wssBinDir: paths.wssBinDir,
+      noRtk: args.noRtk,
+      noRag: args.noRag,
     });
     logger.check("startup", "Project scaffolded.");
     return;
@@ -138,8 +125,8 @@ async function main() {
 
   if (command === "deps") {
     initLogger({ prefix: "wssch" });
-    await ensureDirs(config);
-    const installer = createDepsInstaller(config);
+    await ensureDirs();
+    const installer = createDepsInstaller();
     await installer.installAll();
     logger.check("startup", "Dependencies installed.");
     return;
@@ -150,6 +137,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  logger.fail("startup", `Fatal: ${err}`);
+  logger.fail("startup", "Fatal: " + err);
   process.exit(1);
 });

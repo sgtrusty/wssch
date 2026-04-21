@@ -1,18 +1,16 @@
 import { spawn, ChildProcess } from "node:child_process";
-import { existsSync, mkdirSync } from "node:fs";
 import { logger } from "../lib/logger.js";
-import type { WssConfig, ComponentState } from "../core/types.js";
+import { configService } from "../config/index.js";
+import type { ComponentState } from "../core/types.js";
 import { createDepsInstaller, DepsInstaller } from "./deps/installer.js";
-import type { RuntimeComponent } from "./deps/base.js";
+import type { RuntimeComponent } from "./deps/dep.interface.js";
 import { RtkClient } from "./deps/optimizer/rtk.js";
 
 const COMPONENT_BIN_PATHS = {
-  // opencode: "/usr/sbin/opencode",
-  opencode: "bash",
+  opencode: "/usr/sbin/opencode",
 } as const;
 
 export class Orchestrator {
-  private config: WssConfig;
   private state: ComponentState = {
     mcp: "stopped",
     rtk: "stopped",
@@ -23,31 +21,27 @@ export class Orchestrator {
   private localRag: RuntimeComponent | null = null;
   private depsInstaller: DepsInstaller | null = null;
 
-  constructor(config: WssConfig) {
-    this.config = config;
-  }
+  constructor() {}
 
   async start(): Promise<void> {
+    const args = configService.args;
+
     logger.info("orchestrator", "Starting orchestrator...");
 
-    await this.ensureDirs();
     await this.initDeps();
 
     const setupPromises: Promise<void>[] = [];
 
-    if (!this.config.noRtk) {
+    if (!args.noRtk) {
       setupPromises.push(this.startRtk());
     } else {
       logger.info("orchestrator", "RTK disabled");
       this.state.rtk = "stopped";
     }
 
-    if (!this.config.noRag) {
-      if (this.config.opencodeManagesMcp) {
-        this.state.mcp = "stopped";
-      } else {
-        setupPromises.push(this.startMcp());
-      }
+    if (!args.noRag) {
+      // MCP disabled by default for now
+      this.state.mcp = "stopped";
     } else {
       logger.info("orchestrator", "MCP (RAG) disabled");
       this.state.mcp = "stopped";
@@ -84,23 +78,9 @@ export class Orchestrator {
   }
 
   private async initDeps(): Promise<void> {
-    this.depsInstaller = createDepsInstaller(this.config as any);
+    this.depsInstaller = createDepsInstaller();
     await this.depsInstaller.installAll();
     this.rtkClient = await this.depsInstaller.getRtkClient();
-  }
-
-  private async ensureDirs(): Promise<void> {
-    const dirs = [
-      this.config.handlerDir,
-      this.config.targetDir,
-      this.config.wssConfigDir,
-    ];
-
-    for (const dir of dirs) {
-      if (!existsSync(dir)) {
-        mkdirSync(dir, { recursive: true });
-      }
-    }
   }
 
   private async startRtk(): Promise<void> {
@@ -130,7 +110,7 @@ export class Orchestrator {
 
   private async startMcp(): Promise<void> {
     if (!this.depsInstaller) {
-      this.depsInstaller = createDepsInstaller(this.config as any);
+      this.depsInstaller = createDepsInstaller();
     }
     this.localRag = this.depsInstaller.createLocalRagClient();
 
@@ -146,13 +126,15 @@ export class Orchestrator {
   }
 
   private async startOpencode(): Promise<void> {
+    const args = configService.args;
+
     return new Promise((resolve) => {
       try {
         this.state.opencode = "starting";
         logger.progress("orchestrator", "Starting OpenCode...");
 
         const ocProc = spawn(COMPONENT_BIN_PATHS.opencode, {
-          cwd: this.config.targetDir,
+          cwd: args.targetDir,
           stdio: "inherit",
           env: {
             ...process.env,
@@ -180,8 +162,7 @@ export class Orchestrator {
   }
 }
 
-export async function createOrchestrator(
-  config: WssConfig,
-): Promise<Orchestrator> {
-  return new Orchestrator(config);
+export async function createOrchestrator(): Promise<Orchestrator> {
+  return new Orchestrator();
 }
+

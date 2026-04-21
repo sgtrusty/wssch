@@ -2,9 +2,18 @@ import { spawn, ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { logger } from "../../../lib/logger.js";
-import type { Config } from "../../../lib/config.js";
-import type { RagQueryResult, RagIngestResult } from "../../../core/types.js";
-import type { RuntimeComponent } from "../base.js";
+import { configService } from "../../../config/index.js";
+import type { RuntimeComponent } from "../dep.interface.js";
+
+export interface RagQueryResult {
+  chunks: string[];
+  sources: string[];
+}
+
+export interface RagIngestResult {
+  fileCount: number;
+  chunkCount: number;
+}
 
 export interface LocalRagConfig {
   dbPath: string;
@@ -18,18 +27,21 @@ export class LocalRagClient implements RuntimeComponent {
   private process: ChildProcess | null = null;
   private config: LocalRagConfig;
 
-  constructor(config: Config) {
+  constructor() {
+    const paths = configService.paths;
+    const runtime = configService.runtime;
+
     this.config = {
-      dbPath: join(config.wssConfigDir, "rag.db"),
-      baseUrl: config.ollamaUrl,
+      dbPath: join(paths.wssConfigDir, "rag.db"),
+      baseUrl: runtime.ollamaUrl,
       embeddingProvider: "ollama",
-      embeddingModel: config.embedModel,
+      embeddingModel: runtime.embeddingModel,
     };
   }
 
   async start(): Promise<void> {
     if (this.isRunning()) return;
-    
+
     logger.progress(this.name, "Starting MCP (local-RAG)...");
 
     const cliDir = "/home/user/cli";
@@ -98,7 +110,14 @@ export class LocalRagClient implements RuntimeComponent {
   }
 
   async query(query: string, topK: number = 5): Promise<RagQueryResult> {
-    const args = ["-y", "mcp-local-rag", "query", "--top-k", String(topK), query];
+    const args = [
+      "-y",
+      "mcp-local-rag",
+      "query",
+      "--top-k",
+      String(topK),
+      query,
+    ];
     const result = await this.runCommand(args);
 
     if (result.code !== 0) {
@@ -130,14 +149,20 @@ export class LocalRagClient implements RuntimeComponent {
     };
   }
 
-  private runCommand(args: string[]): Promise<{ code: number; stdout: string; stderr: string }> {
+  private runCommand(
+    args: string[],
+  ): Promise<{ code: number; stdout: string; stderr: string }> {
     return new Promise((resolve) => {
       const proc = spawn("/usr/bin/npx", args, { stdio: "pipe" });
       let stdout = "";
       let stderr = "";
 
-      proc.stdout?.on("data", (d) => { stdout += d; });
-      proc.stderr?.on("data", (d) => { stderr += d; });
+      proc.stdout?.on("data", (d) => {
+        stdout += d;
+      });
+      proc.stderr?.on("data", (d) => {
+        stderr += d;
+      });
 
       proc.on("close", (code) => {
         resolve({ code: code || 0, stdout, stderr });
@@ -150,6 +175,7 @@ export class LocalRagClient implements RuntimeComponent {
   }
 }
 
-export function createLocalRagClient(config: Config): LocalRagClient {
-  return new LocalRagClient(config);
+export function createLocalRagClient(): LocalRagClient {
+  return new LocalRagClient();
 }
+

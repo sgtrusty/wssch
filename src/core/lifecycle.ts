@@ -2,19 +2,23 @@ import { spawn } from "node:child_process";
 import { mkdir, access, constants } from "node:fs/promises";
 import { join } from "node:path";
 import { logger } from "../lib/logger.js";
-import type { Config } from "../lib/config.js";
+import { configService } from "../config/index.js";
 
-export async function ensureDirs(config: Config): Promise<void> {
+export async function ensureDirs(): Promise<void> {
+  const args = configService.args;
+  const paths = configService.paths;
+
   const dirs = [
-    config.wssBinDir,
-    config.wssCacheDir,
-    `${config.wssCacheDir}/npm`,
-    `${config.wssCacheDir}/node_modules`,
-    `${config.wssCacheDir}/models`,
-    `${config.wssConfigDir}/opencode-config`,
-    `${config.wssConfigDir}/opencode-share`,
-    `${config.wssDataDir}/mcp`,
-    `${config.wssConfigDir}/rtk`,
+    args.targetDir,
+    paths.wssBinDir,
+    paths.wssCacheDir,
+    `${paths.wssCacheDir}/npm`,
+    `${paths.wssCacheDir}/node_modules`,
+    `${paths.wssCacheDir}/models`,
+    `${paths.wssOpencodeConfigDir}`,
+    `${paths.wssOpencodeCacheDir}`,
+    `${paths.wssDataDir}/mcp`,
+    `${paths.wssConfigDir}/rtk`,
   ];
 
   for (const dir of dirs) {
@@ -65,7 +69,7 @@ async function checkNode(): Promise<boolean> {
   return false;
 }
 
-export async function preflight(config: Config): Promise<boolean> {
+export async function preflight(): Promise<boolean> {
   const required = [checkNode()];
   await Promise.all(required);
 
@@ -76,8 +80,10 @@ export async function preflight(config: Config): Promise<boolean> {
   return results.every((r) => r);
 }
 
-export async function initProject(config: Config): Promise<void> {
-  logger.info("lifecycle", `Ensuring .wssdata/ in ${config.targetDir}`);
-  await ensureDirs(config);
-}
+export async function initProject(): Promise<void> {
+  const paths = configService.paths;
+  const args = configService.args;
 
+  logger.info("lifecycle", `Ensuring .wssdata/ in ${paths.wssDataDir}`);
+  await ensureDirs();
+}

@@ -3,8 +3,8 @@ import { mkdir, access, constants, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { logger } from "../../../lib/logger.js";
-import type { Config } from "../../../lib/config.js";
-import type { Dependency } from "../base.js";
+import { configService } from "../../../config/index.js";
+import type { Dependency } from "../dep.interface.js";
 import {
   safeInstallBin,
   downloadUrl,
@@ -65,8 +65,8 @@ export class RtkDependency implements Dependency {
   readonly name = "RTK (optimizer)";
   readonly binPath: string;
 
-  constructor(private readonly config: Config) {
-    this.binPath = `${config.wssBinDir}/rtk`;
+  constructor() {
+    this.binPath = `${configService.paths.wssBinDir}/rtk`;
   }
 
   async isAvailable(): Promise<boolean> {
@@ -79,6 +79,8 @@ export class RtkDependency implements Dependency {
   }
 
   async install(): Promise<void> {
+    const paths = configService.paths;
+
     if (await this.isAvailable()) {
       logger.info("subdep", "RTK already installed");
       return;
@@ -91,7 +93,7 @@ export class RtkDependency implements Dependency {
     const target = getTarget(os, arch);
     const version = await getLatestVersion();
 
-    await mkdir(this.config.wssBinDir, { recursive: true });
+    await mkdir(paths.wssBinDir, { recursive: true });
 
     const url = `https://${DOWNLOAD_HOST}/${REPO}/releases/download/${version}/rtk-${target}.tar.gz`;
     logger.progress("subdep", `Downloading RTK from ${url}`);
@@ -112,7 +114,7 @@ export class RtkDependency implements Dependency {
       throw new Error("RTK binary not executable after installation");
     }
 
-    logger.check("subdep", `RTK installed to ${this.config.wssBinDir}`);
+    logger.check("subdep", `RTK installed to ${paths.wssBinDir}`);
     await rm(archive, { force: true });
   }
 
@@ -208,10 +210,10 @@ export class RtkClient {
   }
 }
 
-export function createRtkDependency(config: Config): RtkDependency {
-  return new RtkDependency(config);
+export function createRtkDependency(): RtkDependency {
+  return new RtkDependency();
 }
 
-export function createRtkClient(config: Config): RtkClient {
-  return new RtkClient(`${config.wssBinDir}/rtk`);
+export function createRtkClient(): RtkClient {
+  return new RtkClient(`${configService.paths.wssBinDir}/rtk`);
 }

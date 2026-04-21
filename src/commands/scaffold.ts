@@ -34,7 +34,7 @@ function scaffoldOpencodeJson(opencodeDir: string, noRag: boolean): void {
     writeFileSync(jsonPath, JSON.stringify(cfg, null, 2));
     logger.info("scaffold", `Wrote opencode.json to ${jsonPath}`);
   } catch (err) {
-    logger.fail("scaffold", `Failed to write opencode.json: ${err}`);
+    logger.fail("scaffold", "Failed to write opencode.json: " + err);
     throw err;
   }
 }

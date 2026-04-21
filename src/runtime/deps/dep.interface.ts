@@ -1,11 +1,9 @@
-import type { Config } from "../../lib/config.js";
-
 export interface Dependency {
   readonly name: string;
   readonly binPath: string;
   isAvailable(): Promise<boolean>;
-  install(config: Config): Promise<void>;
-  postInstall?(config: Config): Promise<void>;
+  install(): Promise<void>;
+  postInstall?(): Promise<void>;
   preDeps?(): string[];
 }
 

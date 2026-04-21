@@ -1,14 +1,15 @@
 import { spawn, ChildProcess, StdioOptions } from "node:child_process";
 import { access, constants } from "node:fs/promises";
 import { logger } from "../lib/logger.js";
-import type { Config } from "../lib/config.js";
+import { configService, SANDBOX_BINDINGS } from "../config/index.js";
 
 const BWARP_BIN = "/usr/bin/bwrap";
 
-function buildBwrapArgs(config: Config): string[] {
-  const args: string[] = [];
+function buildBwrapArgs(): string[] {
+  const bwrapArgs: string[] = [];
+  const paths = configService.paths;
+  const cfg = configService.args;
 
-  // Immutable system (ro-bind)
   const roPaths = [
     "/usr",
     "/lib",
@@ -20,89 +21,93 @@ function buildBwrapArgs(config: Config): string[] {
     "/etc/ca-certificates",
   ];
   for (const p of roPaths) {
-    args.push("--ro-bind-try", p, p);
+    bwrapArgs.push("--ro-bind-try", p, p);
   }
 
-  // Proc / dev / tmp
-  args.push("--proc", "/proc", "--dev", "/dev", "--dir", "/tmp");
+  bwrapArgs.push("--proc", "/proc", "--dev", "/dev", "--dir", "/tmp");
 
-  // Isolation
-  args.push("--unshare-all", "--share-net", "--die-with-parent");
+  bwrapArgs.push("--unshare-all", "--share-net", "--die-with-parent");
 
-  // Home & env
-  args.push("--chdir", "/home/user/project", "--setenv", "HOME", "/home/user");
-  args.push("--setenv", "TERM", process.env.TERM || "xterm");
-  args.push("--setenv", "OPENCODE_CONFIG_DIR", "/home/user/.config/opencode");
-
-  // Project bind
-  args.push("--bind", config.targetDir, "/home/user/project");
-
-  // Bin (bun, rtk)
-  args.push("--bind", config.wssBinDir, "/home/user/.config/wssch/bin");
-  args.push(
+  const args = configService.args;
+  bwrapArgs.push("--bind", args.targetDir, SANDBOX_BINDINGS.targetDir);
+  bwrapArgs.push(
+    "--chdir",
+    SANDBOX_BINDINGS.targetDir,
     "--setenv",
-    "PATH",
-    "/home/user/.config/wssch/bin:/usr/bin:/bin:/usr/local/bin",
+    "HOME",
+    SANDBOX_BINDINGS.targetDir.split("/").slice(0, 3).join("/"),
+  );
+  bwrapArgs.push("--setenv", "TERM", process.env.TERM || SANDBOX_BINDINGS.term);
+  bwrapArgs.push(
+    "--setenv",
+    "OPENCODE_CONFIG_DIR",
+    SANDBOX_BINDINGS.opencodeConfig,
   );
 
-  // Caches
-  args.push("--bind", `${config.wssCacheDir}/npm`, "/home/user/.cache/npm");
+  bwrapArgs.push("--bind", paths.wssBinDir, SANDBOX_BINDINGS.wssBinDir);
+  bwrapArgs.push("--setenv", "PATH", SANDBOX_BINDINGS.path);
 
-  // OpenCode config and data
-  args.push(
+  bwrapArgs.push(
     "--bind",
-    `${config.wssConfigDir}/opencode-config`,
-    "/home/user/.config/opencode",
+    `${paths.wssCacheDir}/npm`,
+    SANDBOX_BINDINGS.npmCacheDir,
   );
-  args.push(
+
+  bwrapArgs.push(
     "--bind",
-    `${config.wssConfigDir}/opencode-share`,
-    "/home/user/.local/share/opencode",
+    paths.wssOpencodeConfigDir,
+    SANDBOX_BINDINGS.wssOpencodeConfigDir,
+  );
+  bwrapArgs.push(
+    "--bind",
+    paths.wssOpencodeCacheDir,
+    SANDBOX_BINDINGS.wssOpencodeCacheDir,
   );
 
-  // MCP config
-  args.push("--bind", `${config.wssDataDir}/mcp`, "/home/user/.wssdata/mcp");
+  bwrapArgs.push(
+    "--bind",
+    `${paths.wssDataDir}/mcp`,
+    `${SANDBOX_BINDINGS.wssDataDir}/mcp`,
+  );
 
-  // Env vars
-  args.push("--setenv", "PROJECT_DIR", "/home/user/project");
-  args.push("--setenv", "XDG_CONFIG_HOME", "/home/user/.config");
+  bwrapArgs.push("--setenv", "PROJECT_DIR", SANDBOX_BINDINGS.projectDir);
+  bwrapArgs.push("--setenv", "XDG_CONFIG_HOME", SANDBOX_BINDINGS.xdgConfigHome);
 
-  // RTK config dir bind
-  args.push("--bind", `${config.wssConfigDir}/rtk`, "/home/user/.config/rtk");
+  bwrapArgs.push(
+    "--bind",
+    `${paths.wssConfigDir}/rtk`,
+    SANDBOX_BINDINGS.rtkConfigDir,
+  );
 
-  if (!config.noRtk) {
-    args.push("--setenv", "NO_RTK", "false");
+  if (!cfg.noRtk) {
+    bwrapArgs.push("--setenv", "NO_RTK", "false");
   } else {
-    args.push("--setenv", "NO_RTK", "true");
+    bwrapArgs.push("--setenv", "NO_RTK", "true");
   }
 
-  if (!config.noOllama) {
-    args.push("--setenv", "NO_RAG", "false");
+  if (!cfg.noOllama) {
+    bwrapArgs.push("--setenv", "NO_RAG", "false");
   } else {
-    args.push("--setenv", "NO_RAG", "true");
+    bwrapArgs.push("--setenv", "NO_RAG", "true");
   }
 
-  args.push("--setenv", "OPENCODE_MANAGES_MCP", "true");
-  args.push("--setenv", "WSS_IN_SANDBOX", "true");
+  bwrapArgs.push("--setenv", "WSS_IN_SANDBOX", "true");
 
-  // Entrypoint
-  args.push("--setenv", "TERM", process.env.TERM || "xterm");
+  bwrapArgs.push("--setenv", "TERM", process.env.TERM || SANDBOX_BINDINGS.term);
 
-  return args;
+  return bwrapArgs;
 }
 
-export async function spawnWithSandbox(config: Config): Promise<void> {
+export async function spawnWithSandbox(): Promise<void> {
   logger.info("sandbox", "Starting sandbox...");
 
-  const args = buildBwrapArgs(config);
+  const bwrapArgs = buildBwrapArgs();
 
-  // Build the bash command for inside the sandbox
   const bashCmd = `exec wssch`;
 
-  // Add bash execution at the end
-  args.push("bash", "-c", bashCmd);
+  bwrapArgs.push("bash", "-c", bashCmd);
 
-  const proc = spawn(BWARP_BIN, args, {
+  const proc = spawn(BWARP_BIN, bwrapArgs, {
     stdio: "inherit" as StdioOptions,
     env: process.env as Record<string, string>,
   });
@@ -127,3 +132,4 @@ export async function isBwrapAvailable(): Promise<boolean> {
     return false;
   }
 }
+
