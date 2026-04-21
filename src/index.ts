@@ -1,5 +1,4 @@
 import { createOrchestrator } from "./runtime/orchestrator.js";
-import { createSessionManager } from "./session/session.js";
 import { scaffold } from "./commands/scaffold.js";
 import { logger, initLogger } from "./lib/logger.js";
 import { parseArgs, dumpConfig, type Config } from "./lib/config.js";
@@ -60,9 +59,6 @@ export async function runOrchestrator(config: Config): Promise<void> {
   });
 
   // Create session
-  const sessions = createSessionManager(true);
-  await sessions.create();
-  logger.info("startup", `Session created: ${sessions.getCurrent()?.id}`);
 
   // Start orchestrator
   const orchestrator = await createOrchestrator({
@@ -84,7 +80,6 @@ export async function runOrchestrator(config: Config): Promise<void> {
   const cleanup = async () => {
     logger.info("startup", "Cleaning up...");
     await orchestrator.stop();
-    await sessions.close();
     logger.check("startup", "Done.");
     process.exit(0);
   };
