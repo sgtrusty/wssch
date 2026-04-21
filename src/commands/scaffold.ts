@@ -1,10 +1,4 @@
-import {
-  existsSync,
-  mkdirSync,
-  writeFileSync,
-  appendFileSync,
-  readFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { logger } from "../lib/logger.js";
 
@@ -26,9 +20,7 @@ export async function scaffold(config: ScaffoldConfig): Promise<void> {
 
   scaffoldOpencodeJson(opencodeDir, noRag);
 
-  addToGitignore(targetDir);
-
-  logger.check("scaffold", `Created .localdata/opencode/ in ${targetDir}`);
+  logger.check("scaffold", `Created initial scaffold at ${targetDir}`);
 }
 
 function scaffoldOpencodeJson(opencodeDir: string, noRag: boolean): void {
@@ -44,16 +36,5 @@ function scaffoldOpencodeJson(opencodeDir: string, noRag: boolean): void {
   } catch (err) {
     logger.fail("scaffold", `Failed to write opencode.json: ${err}`);
     throw err;
-  }
-}
-
-function addToGitignore(targetDir: string): void {
-  const gitignorePath = join(targetDir, ".gitignore");
-
-  if (existsSync(gitignorePath)) {
-    const content = readFileSync(gitignorePath, "utf-8");
-    if (!content.includes(".localdata/rag.db")) {
-      appendFileSync(gitignorePath, "\n.localdata/rag.db\n");
-    }
   }
 }
