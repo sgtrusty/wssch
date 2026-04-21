@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { logger } from "@lib/logger.js";
 import { configService } from "@config/index.js";
-import type { RuntimeComponent } from "../dep.interface.js";
+import type { Dependency } from "../dependency.interface.js";
 
 export interface RagQueryResult {
   chunks: string[];
@@ -22,8 +22,9 @@ export interface LocalRagConfig {
   embeddingModel?: string;
 }
 
-export class LocalRagClient implements RuntimeComponent {
+export class LocalRagClient implements Dependency {
   readonly name = "MCP (local-RAG)";
+  readonly binPath = "";
   private process: ChildProcess | null = null;
   private config: LocalRagConfig;
 
@@ -38,6 +39,13 @@ export class LocalRagClient implements RuntimeComponent {
       embeddingModel: runtime.embeddingModel,
     };
   }
+
+  async isAvailable(): Promise<boolean> {
+    const mcpBin = join("/home/user/cli", "node_modules", ".bin", "mcp-local-rag");
+    return existsSync(mcpBin);
+  }
+
+  async install(): Promise<void> {}
 
   async start(): Promise<void> {
     if (this.isRunning()) return;
@@ -178,4 +186,3 @@ export class LocalRagClient implements RuntimeComponent {
 export function createLocalRagClient(): LocalRagClient {
   return new LocalRagClient();
 }
-

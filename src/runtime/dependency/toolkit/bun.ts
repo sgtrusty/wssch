@@ -4,8 +4,12 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { logger } from "@lib/logger.js";
 import { configService } from "@config/index.js";
-import type { Dependency } from "../dep.interface.js";
-import { downloadUrl, extractZip, moveExtractedBin } from "../installUtil.js";
+import type { Dependency } from "../dependency.interface.js";
+import {
+  downloadUrl,
+  extractZip,
+  moveExtractedBin,
+} from "../dependency.util.js";
 
 const REPO = "oven-sh/bun";
 const DOWNLOAD_HOST = "github.com";
@@ -115,3 +119,4 @@ export class BunDependency implements Dependency {
 export function createBunDependency(): BunDependency {
   return new BunDependency();
 }
+

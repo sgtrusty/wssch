@@ -4,13 +4,13 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { logger } from "@lib/logger.js";
 import { configService } from "@config/index.js";
-import type { Dependency } from "../dep.interface.js";
+import type { Dependency } from "../dependency.interface.js";
 import {
   safeInstallBin,
   downloadUrl,
   extractTar,
   isExecutable,
-} from "../installUtil.js";
+} from "../dependency.util.js";
 
 const REPO = "rtk-ai/rtk";
 const DOWNLOAD_HOST = "github.com";
@@ -64,9 +64,35 @@ async function getLatestVersion(): Promise<string> {
 export class RtkDependency implements Dependency {
   readonly name = "RTK (optimizer)";
   readonly binPath: string;
+  private client: RtkClient | null = null;
+  private _isRunning = false;
 
   constructor() {
     this.binPath = `${configService.paths.wssBinDir}/rtk`;
+  }
+
+  async start(): Promise<void> {
+    this.client = new RtkClient(this.binPath);
+    try {
+      const available = await this.client.check();
+      if (available) {
+        this._isRunning = true;
+        logger.check("component", "RTK ready");
+      } else {
+        logger.warn("component", "RTK not available");
+      }
+    } catch (err) {
+      logger.warn("component", `RTK check failed: ${err}`);
+    }
+  }
+
+  async stop(): Promise<void> {
+    this._isRunning = false;
+    this.client = null;
+  }
+
+  isRunning(): boolean {
+    return this._isRunning;
   }
 
   async isAvailable(): Promise<boolean> {
@@ -217,3 +243,4 @@ export function createRtkDependency(): RtkDependency {
 export function createRtkClient(): RtkClient {
   return new RtkClient(`${configService.paths.wssBinDir}/rtk`);
 }
+

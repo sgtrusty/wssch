@@ -1,10 +1,10 @@
-import { createOrchestrator } from "@runtime/orchestrator.js";
 import { scaffold } from "@commands/scaffold.js";
 import { logger, initLogger } from "@lib/logger.js";
 import { configService } from "@config/index.js";
 import { preflight, ensureDirs } from "@core/lifecycle.js";
-import { createDepsInstaller } from "@runtime/deps/installer.js";
 import { isBwrapAvailable } from "@sandbox/bwrap.js";
+import { createDepsInstaller } from "@runtime/dependency/dependency.service.js";
+import { createOrchestrator } from "@runtime/orchest/orchest.service.js";
 
 export { logger, initLogger } from "@lib/logger.js";
 export { preflight, ensureDirs } from "@core/lifecycle.js";

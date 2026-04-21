@@ -5,7 +5,7 @@ import { cwd } from "node:process";
 
 import type { ArgConfig, Command } from "./arg.config.js";
 import type { PathsConfig } from "./paths.config.js";
-import type { RuntimeConfig, DepName, ComponentName } from "./runtime.config.js";
+import type { RuntimeConfig } from "./runtime.config.js";
 
 function loadEnv(targetDir: string): void {
   const envPath = resolve(targetDir, ".env");
@@ -99,22 +99,17 @@ class ConfigService {
       wssDataDir: `${args.targetDir}/.wssdata`,
     };
 
-    const deps: DepName[] = [];
-    if (process.env.NO_RTK !== "true") deps.push("rtk");
-    deps.push("bun");
-    if (process.env.NO_OLLAMA !== "true") deps.push("ollama");
-    if (process.env.NO_RAG !== "true") deps.push("mcp-local-agent");
-
-    const components: ComponentName[] = [];
-    if (!args.noRtk) components.push("rtk");
-    if (!args.noRag) components.push("mcp");
-    components.push("opencode");
+    const items: string[] = [];
+    if (process.env.NO_RTK !== "true") items.push("ALGO_RTK");
+    items.push("TOOLKIT_BUN");
+    if (process.env.NO_OLLAMA !== "true") items.push("PROXY_OLLAMA");
+    if (process.env.NO_RAG !== "true") items.push("MCP_LOCAL_AGENT");
+    items.push("AGENTIC_OPENCODE");
 
     const runtime: RuntimeConfig = {
       ollamaUrl: process.env.OLLAMA_URL || DEFAULTS.ollamaUrl,
       embeddingModel: process.env.EMBEDDING_MODEL || DEFAULTS.embeddingModel,
-      deps,
-      components,
+      items,
     };
 
     this.config = { args, paths, runtime };

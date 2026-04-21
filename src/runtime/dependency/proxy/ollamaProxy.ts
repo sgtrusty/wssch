@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { configService } from "@config/index.js";
-import type { Dependency } from "../dep.interface.js";
+import { Dependency } from "../dependency.interface.js";
 
 export class OllamaProxyDependency implements Dependency {
   readonly name = "Ollama";
@@ -12,9 +12,13 @@ export class OllamaProxyDependency implements Dependency {
 
   async isAvailable(): Promise<boolean> {
     try {
-      const proc = spawn("curl", ["-sf", `${configService.runtime.ollamaUrl}/api/tags`], {
-        stdio: "ignore",
-      });
+      const proc = spawn(
+        "curl",
+        ["-sf", `${configService.runtime.ollamaUrl}/api/tags`],
+        {
+          stdio: "ignore",
+        },
+      );
       const code = await new Promise<number>((resolve) => {
         proc.on("close", (c) => resolve(c ?? 0));
       });
@@ -32,3 +36,4 @@ export class OllamaProxyDependency implements Dependency {
 export function createOllamaProxyDependency(): OllamaProxyDependency {
   return new OllamaProxyDependency();
 }
+

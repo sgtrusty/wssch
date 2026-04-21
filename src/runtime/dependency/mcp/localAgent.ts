@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { configService } from "@config/index.js";
-import type { Dependency } from "../dep.interface.js";
+import { Dependency } from "../dependency.interface.js";
 
 interface OpencodeJson {
   mcp?: Record<string, unknown>;
@@ -17,10 +17,7 @@ export class McpLocalAgentDependency implements Dependency {
 
   async isAvailable(): Promise<boolean> {
     const paths = configService.paths;
-    const opencodeJsonPath = join(
-      paths.wssOpencodeConfigDir,
-      "opencode.json",
-    );
+    const opencodeJsonPath = join(paths.wssOpencodeConfigDir, "opencode.json");
 
     if (!existsSync(opencodeJsonPath)) {
       return false;
@@ -37,10 +34,7 @@ export class McpLocalAgentDependency implements Dependency {
 
   async install(): Promise<void> {
     const paths = configService.paths;
-    const opencodeJsonPath = join(
-      paths.wssOpencodeConfigDir,
-      "opencode.json",
-    );
+    const opencodeJsonPath = join(paths.wssOpencodeConfigDir, "opencode.json");
 
     let opencodeJson: OpencodeJson = {};
 
@@ -78,3 +72,4 @@ export class McpLocalAgentDependency implements Dependency {
 export function createMcpLocalAgentDependency(): McpLocalAgentDependency {
   return new McpLocalAgentDependency();
 }
+

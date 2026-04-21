@@ -1,15 +1,22 @@
 import { spawn, ChildProcess } from "node:child_process";
 import { logger } from "@lib/logger.js";
 import { configService } from "@config/index.js";
-import type { LifecycleComponent } from "../dep.interface.js";
+import type { Dependency } from "../dependency.interface.js";
 
 const OPENCODE_BIN = "/usr/sbin/opencode";
 
-export class OpencodeComponent implements LifecycleComponent {
+export class OpencodeComponent implements Dependency {
   readonly name = "OpenCode";
+  readonly binPath = OPENCODE_BIN;
   private process: ChildProcess | null = null;
   private exitResolve: (() => void) | null = null;
   private exitPromise: Promise<void> | null = null;
+
+  async isAvailable(): Promise<boolean> {
+    return true;
+  }
+
+  async install(): Promise<void> {}
 
   async start(): Promise<void> {
     const args = configService.args;
@@ -61,6 +68,6 @@ export class OpencodeComponent implements LifecycleComponent {
   }
 }
 
-export function createOpencodeComponent(): LifecycleComponent {
+export function createOpencodeComponent(): Dependency {
   return new OpencodeComponent();
 }

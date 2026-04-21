@@ -1,10 +1,9 @@
 export type DepName = "rtk" | "bun" | "ollama" | "mcp-local-agent";
 
-export type ComponentName = "rtk" | "mcp" | "opencode";
+export type { RuntimeItem, DependencyType } from "@runtime/bridge.service.js";
 
 export interface RuntimeConfig {
   ollamaUrl: string;
   embeddingModel: string;
-  deps: DepName[];
-  components: ComponentName[];
+  items: string[];
 }
