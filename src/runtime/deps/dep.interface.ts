@@ -7,10 +7,12 @@ export interface Dependency {
   preDeps?(): string[];
 }
 
-export interface RuntimeComponent {
+export interface LifecycleComponent {
   readonly name: string;
   start(): Promise<void>;
   stop(): Promise<void>;
   isRunning(): boolean;
   healthCheck?(): Promise<boolean>;
 }
+
+export type { LifecycleComponent as RuntimeComponent };

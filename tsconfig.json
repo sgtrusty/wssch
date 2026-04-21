@@ -9,7 +9,16 @@
     "rootDir": "src",
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "paths": {
+      "@config/*": ["./src/config/*"],
+      "@runtime/*": ["./src/runtime/*"],
+      "@sandbox/*": ["./src/sandbox/*"],
+      "@commands/*": ["./src/commands/*"],
+      "@lib/*": ["./src/lib/*"],
+      "@core/*": ["./src/core/*"]
+    },
+    "baseUrl": "."
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

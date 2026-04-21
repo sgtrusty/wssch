@@ -1,7 +1,7 @@
 import { spawn, ChildProcess, StdioOptions } from "node:child_process";
 import { access, constants } from "node:fs/promises";
-import { logger } from "../lib/logger.js";
-import { configService, SANDBOX_BINDINGS } from "../config/index.js";
+import { logger } from "@lib/logger.js";
+import { configService, SANDBOX_BINDINGS } from "@config/index.js";
 
 const BWARP_BIN = "/usr/bin/bwrap";
 

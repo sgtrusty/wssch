@@ -2,8 +2,8 @@ import { spawn } from "node:child_process";
 import { mkdir, access, constants, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { logger } from "../../../lib/logger.js";
-import { configService } from "../../../config/index.js";
+import { logger } from "@lib/logger.js";
+import { configService } from "@config/index.js";
 import type { Dependency } from "../dep.interface.js";
 import { downloadUrl, extractZip, moveExtractedBin } from "../installUtil.js";
 

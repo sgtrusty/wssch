@@ -1,14 +1,10 @@
-import { spawn, ChildProcess } from "node:child_process";
-import { logger } from "../lib/logger.js";
-import { configService } from "../config/index.js";
-import type { ComponentState } from "../core/types.js";
-import { createDepsInstaller, DepsInstaller } from "./deps/installer.js";
-import type { RuntimeComponent } from "./deps/dep.interface.js";
+import { logger } from "@lib/logger.js";
+import { configService } from "@config/index.js";
+import type { ComponentState } from "@core/types.js";
+import type { LifecycleComponent } from "./deps/dep.interface.js";
+import { createOpencodeComponent } from "./deps/agentic/opencode.js";
+import { createLocalRagClient } from "./deps/mcp/localRag.js";
 import { RtkClient } from "./deps/optimizer/rtk.js";
-
-const COMPONENT_BIN_PATHS = {
-  opencode: "/usr/sbin/opencode",
-} as const;
 
 export class Orchestrator {
   private state: ComponentState = {
@@ -16,56 +12,45 @@ export class Orchestrator {
     rtk: "stopped",
     opencode: "stopped",
   };
-  private processes: Map<string, ChildProcess> = new Map();
-  private rtkClient: RtkClient | null = null;
-  private localRag: RuntimeComponent | null = null;
-  private depsInstaller: DepsInstaller | null = null;
+  private components: LifecycleComponent[] = [];
 
   constructor() {}
 
   async start(): Promise<void> {
-    const args = configService.args;
-
     logger.info("orchestrator", "Starting orchestrator...");
 
-    await this.initDeps();
+    const runtime = configService.runtime;
 
-    const setupPromises: Promise<void>[] = [];
-
-    if (!args.noRtk) {
-      setupPromises.push(this.startRtk());
-    } else {
-      logger.info("orchestrator", "RTK disabled");
-      this.state.rtk = "stopped";
+    for (const compName of runtime.components) {
+      if (compName === "rtk") {
+        this.components.push(new RtkLifecycleComponent());
+      } else if (compName === "mcp") {
+        this.components.push(createLocalRagClient());
+      } else if (compName === "opencode") {
+        this.components.push(createOpencodeComponent());
+      }
     }
 
-    if (!args.noRag) {
-      // MCP disabled by default for now
-      this.state.mcp = "stopped";
-    } else {
-      logger.info("orchestrator", "MCP (RAG) disabled");
-      this.state.mcp = "stopped";
+    for (const comp of this.components) {
+      await this.startComponent(comp);
     }
 
-    await Promise.all(setupPromises);
-
-    await this.startOpencode();
+    const mainComp = this.components.find(
+      (c) => c.name.toLowerCase() === "opencode",
+    );
+    if (mainComp) {
+      while (mainComp.isRunning()) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+    }
   }
 
   async stop(): Promise<void> {
     logger.info("orchestrator", "Stopping orchestrator...");
 
-    if (this.localRag) {
-      await this.localRag.stop();
-    }
+    const stopPromises = this.components.map((comp) => comp.stop());
+    await Promise.all(stopPromises);
 
-    for (const [name, proc] of this.processes) {
-      if (proc && !proc.killed) {
-        proc.kill("SIGTERM");
-        logger.check("orchestrator", `Stopped ${name}`);
-      }
-    }
-    this.processes.clear();
     this.state = { mcp: "stopped", rtk: "stopped", opencode: "stopped" };
   }
 
@@ -73,92 +58,60 @@ export class Orchestrator {
     return { ...this.state };
   }
 
-  getRtkClient(): RtkClient | null {
-    return this.rtkClient;
-  }
-
-  private async initDeps(): Promise<void> {
-    this.depsInstaller = createDepsInstaller();
-    await this.depsInstaller.installAll();
-    this.rtkClient = await this.depsInstaller.getRtkClient();
-  }
-
-  private async startRtk(): Promise<void> {
-    if (!this.rtkClient) {
-      logger.info("orchestrator", "RTK not available");
-      this.state.rtk = "stopped";
-      return;
+  private async startComponent(comp: LifecycleComponent): Promise<void> {
+    try {
+      this.state = this.updateState(comp.name, "starting");
+      logger.progress("orchestrator", `Starting ${comp.name}...`);
+      await comp.start();
+      this.state = this.updateState(comp.name, "running");
+      logger.check("orchestrator", `${comp.name} ready`);
+    } catch (err) {
+      this.state = this.updateState(comp.name, "error");
+      logger.fail("orchestrator", `${comp.name} failed: ${err}`);
     }
+  }
+
+  private updateState(
+    name: string,
+    status: ComponentState[keyof ComponentState],
+  ): ComponentState {
+    const key = name.toLowerCase() as keyof ComponentState;
+    if (key in this.state) {
+      return { ...this.state, [key]: status };
+    }
+    return this.state;
+  }
+}
+
+class RtkLifecycleComponent implements LifecycleComponent {
+  readonly name = "RTK";
+  private client: RtkClient | null = null;
+  private _isRunning = false;
+
+  async start(): Promise<void> {
+    const paths = configService.paths;
+    this.client = new RtkClient(`${paths.wssBinDir}/rtk`);
 
     try {
-      this.state.rtk = "starting";
-      logger.progress("orchestrator", "Checking RTK...");
-
-      const available = await this.rtkClient.check();
+      const available = await this.client.check();
       if (available) {
-        this.state.rtk = "running";
-        logger.check("orchestrator", "RTK ready");
+        this._isRunning = true;
+        logger.check("component", "RTK ready");
       } else {
-        this.state.rtk = "error";
-        logger.warn("orchestrator", "RTK check failed");
+        logger.warn("component", "RTK not available");
       }
     } catch (err) {
-      this.state.rtk = "error";
-      logger.fail("orchestrator", `RTK failed: ${err}`);
+      logger.warn("component", `RTK check failed: ${err}`);
     }
   }
 
-  private async startMcp(): Promise<void> {
-    if (!this.depsInstaller) {
-      this.depsInstaller = createDepsInstaller();
-    }
-    this.localRag = this.depsInstaller.createLocalRagClient();
-
-    try {
-      this.state.mcp = "starting";
-      await this.localRag.start();
-      this.state.mcp = "running";
-      logger.check("orchestrator", "MCP running");
-    } catch (err) {
-      this.state.mcp = "error";
-      logger.fail("orchestrator", `MCP failed: ${err}`);
-    }
+  async stop(): Promise<void> {
+    this._isRunning = false;
+    this.client = null;
   }
 
-  private async startOpencode(): Promise<void> {
-    const args = configService.args;
-
-    return new Promise((resolve) => {
-      try {
-        this.state.opencode = "starting";
-        logger.progress("orchestrator", "Starting OpenCode...");
-
-        const ocProc = spawn(COMPONENT_BIN_PATHS.opencode, {
-          cwd: args.targetDir,
-          stdio: "inherit",
-          env: {
-            ...process.env,
-            HOME: "/home/user",
-            TERM: process.env.TERM || "xterm",
-          },
-        });
-
-        this.processes.set("opencode", ocProc);
-        this.state.opencode = "running";
-        logger.check("orchestrator", "OpenCode running");
-
-        ocProc.on("exit", async (code) => {
-          logger.info("orchestrator", `OpenCode exited with code ${code}`);
-          this.state.opencode = "stopped";
-          await this.stop();
-          resolve();
-        });
-      } catch (err) {
-        this.state.opencode = "error";
-        logger.fail("orchestrator", `OpenCode failed: ${err}`);
-        resolve();
-      }
-    });
+  isRunning(): boolean {
+    return this._isRunning;
   }
 }
 

@@ -1,8 +1,8 @@
 import { spawn } from "node:child_process";
 import { mkdir, access, constants } from "node:fs/promises";
 import { join } from "node:path";
-import { logger } from "../lib/logger.js";
-import { configService } from "../config/index.js";
+import { logger } from "@lib/logger.js";
+import { configService } from "@config/index.js";
 
 export async function ensureDirs(): Promise<void> {
   const args = configService.args;

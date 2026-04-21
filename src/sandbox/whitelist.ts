@@ -1,8 +1,8 @@
 import { spawn } from "node:child_process";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { logger } from "../lib/logger.js";
-import { configService } from "../config/index.js";
+import { logger } from "@lib/logger.js";
+import { configService } from "@config/index.js";
 
 const DB_NAME = "whitelist.db";
 

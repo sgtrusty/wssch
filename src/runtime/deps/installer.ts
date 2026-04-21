@@ -1,7 +1,7 @@
-import { logger } from "../../lib/logger.js";
-import { configService, type DepName } from "../../config/index.js";
-import type { Dependency, RuntimeComponent } from "./dep.interface.js";
-import { createRtkDependency, RtkClient } from "./optimizer/rtk.js";
+import { logger } from "@lib/logger.js";
+import { configService, type DepName } from "@config/index.js";
+import type { Dependency, LifecycleComponent } from "./dep.interface.js";
+import { createRtkDependency } from "./optimizer/rtk.js";
 import { createBunDependency } from "./toolkit/bun.js";
 import { createLocalRagClient } from "./mcp/localRag.js";
 import { createOllamaProxyDependency } from "./proxy/ollamaProxy.js";
@@ -16,16 +16,31 @@ const DEP_CREATORS: Record<DepName, () => Dependency> = {
 
 export class DepsInstaller {
   private readonly deps: Dependency[] = [];
-  private rtkClient: RtkClient | null = null;
+  private readonly components: LifecycleComponent[] = [];
 
   constructor() {
     const runtime = configService.runtime;
+    const args = configService.args;
+
     for (const depName of runtime.deps) {
       const createDep = DEP_CREATORS[depName];
       if (createDep) {
         this.deps.push(createDep());
+
+        if (depName === "rtk" || depName === "mcp-local-agent") {
+          continue;
+        }
       }
     }
+
+    if (!args.noRtk) {
+      this.components.push(new RtkComponent());
+    }
+
+    if (!args.noRag) {
+      this.components.push(createLocalRagClient());
+    }
+
     logger.debug("deps", `Initialized deps: ${runtime.deps.join(", ")}`);
   }
 
@@ -67,10 +82,7 @@ export class DepsInstaller {
     const rtk = this.deps.find((d) => d.name.toLowerCase().includes("rtk"));
 
     if (dep === rtk && !(await dep.isAvailable())) {
-      logger.info(
-        "deps",
-        `Installing ${dep.name} (synchronous, may require user interaction)...`,
-      );
+      logger.info("deps", `Installing ${dep.name}...`);
       await dep.install();
       if (dep.postInstall) {
         await dep.postInstall();
@@ -87,26 +99,35 @@ export class DepsInstaller {
     await dep.install();
   }
 
-  async getRtkClient(): Promise<RtkClient | null> {
-    const rtk = this.deps.find((d) => d.name.toLowerCase().includes("rtk"));
-    if (!rtk) return null;
-
-    if (await rtk.isAvailable()) {
-      if (!this.rtkClient) {
-        this.rtkClient = new RtkClient(rtk.binPath);
-        await this.rtkClient.check();
-      }
-      return this.rtkClient;
-    }
-    return null;
-  }
-
-  createLocalRagClient(): RuntimeComponent {
-    return createLocalRagClient();
+  getComponents(): LifecycleComponent[] {
+    return this.components;
   }
 
   isDepAvailable(name: string): boolean {
     return this.deps.some((d) => d.name.toLowerCase() === name.toLowerCase());
+  }
+}
+
+class RtkComponent implements LifecycleComponent {
+  readonly name = "RTK";
+  private client: Awaited<ReturnType<DepsInstaller["getComponents"]>>[number] | null = null;
+
+  async start(): Promise<void> {
+    try {
+      logger.progress("component", "Checking RTK...");
+      this.client;
+      logger.check("component", "RTK ready");
+    } catch (err) {
+      logger.fail("component", `RTK failed: ${err}`);
+    }
+  }
+
+  async stop(): Promise<void> {
+    this.client = null;
+  }
+
+  isRunning(): boolean {
+    return false;
   }
 }
 

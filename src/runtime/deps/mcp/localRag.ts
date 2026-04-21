@@ -1,8 +1,8 @@
 import { spawn, ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { logger } from "../../../lib/logger.js";
-import { configService } from "../../../config/index.js";
+import { logger } from "@lib/logger.js";
+import { configService } from "@config/index.js";
 import type { RuntimeComponent } from "../dep.interface.js";
 
 export interface RagQueryResult {

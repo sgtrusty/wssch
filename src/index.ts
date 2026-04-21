@@ -1,13 +1,13 @@
-import { createOrchestrator } from "./runtime/orchestrator.js";
-import { scaffold } from "./commands/scaffold.js";
-import { logger, initLogger } from "./lib/logger.js";
-import { configService } from "./config/index.js";
-import { preflight, ensureDirs } from "./core/lifecycle.js";
-import { createDepsInstaller } from "./runtime/deps/installer.js";
-import { isBwrapAvailable } from "./sandbox/bwrap.js";
+import { createOrchestrator } from "@runtime/orchestrator.js";
+import { scaffold } from "@commands/scaffold.js";
+import { logger, initLogger } from "@lib/logger.js";
+import { configService } from "@config/index.js";
+import { preflight, ensureDirs } from "@core/lifecycle.js";
+import { createDepsInstaller } from "@runtime/deps/installer.js";
+import { isBwrapAvailable } from "@sandbox/bwrap.js";
 
-export { logger, initLogger } from "./lib/logger.js";
-export { preflight, ensureDirs } from "./core/lifecycle.js";
+export { logger, initLogger } from "@lib/logger.js";
+export { preflight, ensureDirs } from "@core/lifecycle.js";
 
 export async function runWithSandbox(): Promise<void> {
   const args = configService.args;
@@ -59,6 +59,9 @@ export async function runOrchestrator(): Promise<void> {
     noRag: args.noRag,
   });
 
+  const installer = createDepsInstaller();
+  await installer.installAll();
+
   const orchestrator = await createOrchestrator();
 
   const cleanup = async () => {
@@ -75,9 +78,8 @@ export async function runOrchestrator(): Promise<void> {
     await orchestrator.start();
   } catch (err) {
     logger.fail("startup", `Failed to start: ${err}`);
-    await cleanup();
-    process.exit(1);
   }
+  await cleanup();
 }
 
 async function main() {

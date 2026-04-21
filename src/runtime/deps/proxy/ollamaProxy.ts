@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { configService } from "../../../config/index.js";
+import { configService } from "@config/index.js";
 import type { Dependency } from "../dep.interface.js";
 
 export class OllamaProxyDependency implements Dependency {

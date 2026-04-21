@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { logger } from "../lib/logger.js";
+import { logger } from "@lib/logger.js";
 
 export interface ScaffoldConfig {
   targetDir: string;

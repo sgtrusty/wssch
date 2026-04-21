@@ -5,7 +5,7 @@ import { cwd } from "node:process";
 
 import type { ArgConfig, Command } from "./arg.config.js";
 import type { PathsConfig } from "./paths.config.js";
-import type { RuntimeConfig, DepName } from "./runtime.config.js";
+import type { RuntimeConfig, DepName, ComponentName } from "./runtime.config.js";
 
 function loadEnv(targetDir: string): void {
   const envPath = resolve(targetDir, ".env");
@@ -105,10 +105,16 @@ class ConfigService {
     if (process.env.NO_OLLAMA !== "true") deps.push("ollama");
     if (process.env.NO_RAG !== "true") deps.push("mcp-local-agent");
 
+    const components: ComponentName[] = [];
+    if (!args.noRtk) components.push("rtk");
+    if (!args.noRag) components.push("mcp");
+    components.push("opencode");
+
     const runtime: RuntimeConfig = {
       ollamaUrl: process.env.OLLAMA_URL || DEFAULTS.ollamaUrl,
       embeddingModel: process.env.EMBEDDING_MODEL || DEFAULTS.embeddingModel,
       deps,
+      components,
     };
 
     this.config = { args, paths, runtime };

@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
-import { configService } from "../../../config/index.js";
+import { configService } from "@config/index.js";
 import type { Dependency } from "../dep.interface.js";
 
 interface OpencodeJson {

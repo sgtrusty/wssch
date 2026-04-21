@@ -9,14 +9,14 @@
   },
   "scripts": {
     "build": "tsc",
-    "bundle": "esbuild src/index.ts --bundle --platform=node --outfile=dist/wssch --format=esm",
-    "bundle:bin": "esbuild src/index.ts --bundle --platform=node --outfile=dist/wssch.cjs --format=cjs && (echo '#!/usr/bin/env node'; cat dist/wssch.cjs) > dist/wssch.tmp && mv dist/wssch.tmp dist/wssch.cjs && chmod +x dist/wssch.cjs",
+    "bundle": "esbuild src/index.ts --bundle --platform=node --outfile=dist/wssch --format=esm --alias:@config=./src/config --alias:@runtime=./src/runtime --alias:@sandbox=./src/sandbox --alias:@commands=./src/commands --alias:@lib=./src/lib --alias:@core=./src/core",
+    "bundle:bin": "esbuild src/index.ts --bundle --platform=node --outfile=dist/wssch.cjs --format=cjs --alias:@config=./src/config --alias:@runtime=./src/runtime --alias:@sandbox=./src/sandbox --alias:@commands=./src/commands --alias:@lib=./src/lib --alias:@core=./src/core && (echo '#!/usr/bin/env node'; cat dist/wssch.cjs) > dist/wssch.tmp && mv dist/wssch.tmp dist/wssch.cjs && chmod +x dist/wssch.cjs",
     "dev": "tsc --watch"
   },
-  "dependencies": {},
   "devDependencies": {
     "@types/node": "^20.0.0",
     "esbuild": "^0.28.0",
+    "esbuild-plugin-tsconfig-paths": "^1.0.2",
     "typescript": "^5.4.0"
   },
   "engines": {
