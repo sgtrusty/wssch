@@ -25,7 +25,7 @@ install:
 		echo "Destination does not exist. Requesting sudo for initial install..."; \
 		sudo cp $(SRC) $(DEST); \
 		sudo chmod +x $(DEST); \
-		sudo chown abandon:users $(DEST); \
+		sudo chown ${USER}:users $(DEST); \
 	else \
 		echo "Updating existing installation..."; \
 		cp $(SRC) $(DEST); \
