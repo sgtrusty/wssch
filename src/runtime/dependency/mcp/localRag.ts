@@ -25,7 +25,7 @@ export interface LocalRagConfig {
 }
 
 export class LocalRagClient implements Dependency {
-  readonly name = "MCP (local-RAG)";
+  readonly name = "Shinpr MCP LocalRag";
   readonly binPath: string;
   private process: ChildProcess | null = null;
   private config: LocalRagConfig;

@@ -10,7 +10,7 @@ interface OpencodeJson {
 }
 
 export class McpLocalAgentDependency implements Dependency {
-  readonly name = "MCP Local Agent";
+  readonly name = "Shinpr MCP LocalDB";
   readonly binPath: string;
 
   constructor() {
