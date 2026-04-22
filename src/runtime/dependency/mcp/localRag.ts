@@ -2,10 +2,12 @@ import { spawn, ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { access, constants } from "node:fs/promises";
-import { configService } from "@config/index.js";
 import { logger } from "@lib/logger.js";
 import { installerService } from "@runtime/installer/installer.service.js";
+import { configService } from "@config/index.js";
 import type { Dependency } from "@runtime/runtime.interface.js";
+import { getPreferences } from "@db/pref.service.js";
+import { createOllamaProxyDependency } from "../proxy/ollamaProxy.js";
 
 export interface RagQueryResult {
   chunks: string[];
@@ -29,19 +31,25 @@ export class LocalRagClient implements Dependency {
   readonly binPath: string;
   private process: ChildProcess | null = null;
   private config: LocalRagConfig;
+  private ollama: Dependency;
 
   constructor() {
     const paths = configService.paths;
-    const runtime = configService.runtime;
-
     this.binPath = join(paths.wssBinDir, "mcp-local-rag");
-
     this.config = {
       dbPath: join(paths.wssConfigDir, "rag.db"),
-      baseUrl: runtime.ollamaUrl,
-      embeddingProvider: "ollama",
-      embeddingModel: runtime.embeddingModel,
     };
+    this.ollama = createOllamaProxyDependency();
+  }
+
+  async initFromPrefs(): Promise<void> {
+    if (this.ollama.initFromPrefs) {
+      await this.ollama.initFromPrefs();
+    }
+    const prefs = await getPreferences();
+    this.config.baseUrl = prefs.ollamaUrl;
+    this.config.embeddingProvider = "ollama";
+    this.config.embeddingModel = prefs.embeddingModel;
   }
 
   async isAvailable(): Promise<boolean> {

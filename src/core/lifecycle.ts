@@ -83,4 +83,3 @@ export async function initProject(): Promise<void> {
   logger.info("lifecycle", `Ensuring .wssdata/ in ${paths.wssDataDir}`);
   await ensureDirs();
 }
-

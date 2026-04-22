@@ -10,7 +10,7 @@ export class Orchestrator {
   async start(): Promise<void> {
     logger.info("orchestrator", "Starting orchestrator...");
 
-    this.components = bridgeService.getDeps();
+    this.components = await bridgeService.getDepsFromPreferences();
 
     for (const comp of this.components) {
       await this.startComponent(comp);

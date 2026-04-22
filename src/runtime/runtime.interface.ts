@@ -5,6 +5,7 @@ export interface Dependency {
   install(): Promise<void>;
   postInstall?(): Promise<void>;
   preDeps?(): string[];
+  initFromPrefs?(): Promise<void>;
   start?(): Promise<void>;
   stop?(): Promise<void>;
   isRunning?(): boolean;

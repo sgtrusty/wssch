@@ -2,12 +2,28 @@ import { scaffold } from "@commands/scaffold.js";
 import { logger, initLogger } from "@lib/logger.js";
 import { configService } from "@config/index.js";
 import { preflight, ensureDirs } from "@core/lifecycle.js";
-import { isBwrapAvailable } from "@sandbox/bwrap.js";
+import { isBwrapAvailable, spawnWithSandbox } from "@sandbox/bwrap.js";
 import { createDepsInstaller } from "@runtime/dependency.service.js";
 import { createOrchestrator } from "@runtime/orchest.service.js";
+import { initPreferences, isPreferencesInitialized, isInitialCheckComplete } from "@db/pref.service.js";
+import { editPreferences, initPreferencesInteractive } from "@ui/prefs.ui.js";
+
+async function initPreferencesIfNeeded(): Promise<void> {
+  const initialized = await isPreferencesInitialized();
+  if (!initialized) {
+    logger.info("startup", "Setting up preferences...");
+    await initPreferences();
+    await initPreferencesInteractive();
+  } else {
+    const checkComplete = await isInitialCheckComplete();
+    if (!checkComplete) {
+      logger.info("startup", "Completing initial preferences check...");
+      await initPreferencesInteractive();
+    }
+  }
+}
 
 export { logger, initLogger } from "@lib/logger.js";
-export { preflight, ensureDirs } from "@core/lifecycle.js";
 
 export async function runWithSandbox(): Promise<void> {
   const args = configService.args;
@@ -30,7 +46,6 @@ export async function runWithSandbox(): Promise<void> {
     process.exit(1);
   }
 
-  const { spawnWithSandbox } = await import("./sandbox/bwrap.js");
   spawnWithSandbox();
 }
 
@@ -59,7 +74,7 @@ export async function runOrchestrator(): Promise<void> {
     noRag: args.noRag,
   });
 
-  const installer = createDepsInstaller();
+  const installer = await createDepsInstaller();
   await installer.installAll();
 
   const orchestrator = await createOrchestrator();
@@ -86,6 +101,8 @@ async function main() {
   const args = process.argv.slice(2);
   const command = args[0] || "run";
   configService.init(args);
+
+  await initPreferencesIfNeeded();
 
   if (command === "run") {
     if (process.env.WSS_IN_SANDBOX === "true") {
@@ -121,6 +138,7 @@ async function main() {
       noRtk: args.noRtk,
       noRag: args.noRag,
     });
+
     logger.check("startup", "Project scaffolded.");
     return;
   }
@@ -128,9 +146,22 @@ async function main() {
   if (command === "deps") {
     initLogger({ prefix: "wssch" });
     await ensureDirs();
-    const installer = createDepsInstaller();
+    const installer = await createDepsInstaller();
     await installer.installAll();
     logger.check("startup", "Dependencies installed.");
+    return;
+  }
+
+  if (command === "database" || command === "db") {
+    initLogger({ prefix: "wssch" });
+    const initialized = await isPreferencesInitialized();
+    if (!initialized) {
+      logger.info("database", "Initializing preferences...");
+      await ensureDirs();
+      await initPreferences();
+    }
+    await editPreferences();
+    logger.check("database", "Preferences updated.");
     return;
   }
 

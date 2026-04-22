@@ -16,7 +16,10 @@
       "@sandbox/*": ["./src/sandbox/*"],
       "@commands/*": ["./src/commands/*"],
       "@lib/*": ["./src/lib/*"],
-      "@core/*": ["./src/core/*"]
+      "@core/*": ["./src/core/*"],
+      "@db/*": ["./src/db/*"],
+      "@ui/*": ["./src/ui/*"],
+      "@runtime/dependency.enum": ["./src/runtime/dependency.enum.ts"]
     },
     "baseUrl": "."
   },

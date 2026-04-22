@@ -1,24 +1,22 @@
 import { spawn } from "node:child_process";
-import { configService } from "@config/index.js";
+import { getPreferences } from "@db/pref.service.js";
 import type { Dependency } from "@runtime/runtime.interface.js";
 
 export class OllamaProxyDependency implements Dependency {
   readonly name = "Ollama";
-  readonly binPath: string;
+  readonly binPath = "";
+  private url = "http://192.168.1.50:11434";
 
-  constructor() {
-    this.binPath = configService.runtime.ollamaUrl;
+  constructor() {}
+
+  async initFromPrefs(): Promise<void> {
+    const prefs = await getPreferences();
+    this.url = prefs.ollamaUrl;
   }
 
   async isAvailable(): Promise<boolean> {
     try {
-      const proc = spawn(
-        "curl",
-        ["-sf", `${configService.runtime.ollamaUrl}/api/tags`],
-        {
-          stdio: "ignore",
-        },
-      );
+      const proc = spawn("curl", ["-sf", `${this.url}/api/tags`], { stdio: "ignore" });
       const code = await new Promise<number>((resolve) => {
         proc.on("close", (c) => resolve(c ?? 0));
       });
@@ -28,9 +26,7 @@ export class OllamaProxyDependency implements Dependency {
     }
   }
 
-  async install(): Promise<void> {
-    // No-op - Ollama is an external service
-  }
+  async install(): Promise<void> {}
 }
 
 export function createOllamaProxyDependency(): OllamaProxyDependency {

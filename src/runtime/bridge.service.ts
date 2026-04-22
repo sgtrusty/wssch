@@ -5,59 +5,81 @@ import { createRtkDependency } from "./dependency/optimizer/rtk.js";
 import { createOllamaProxyDependency } from "./dependency/proxy/ollamaProxy.js";
 import { createBunDependency } from "./dependency/toolkit/bun.js";
 import { createOpencodeComponent } from "./dependency/agentic/opencode.js";
+import {
+  DepType,
+  ToolkitItem,
+  OptimizerItem,
+  ProxyItem,
+  McpItem,
+  AgenticItem,
+  getMcpItem,
+  getOptimizerItem,
+  getAgenticItem,
+} from "@runtime/dependency.enum.js";
+import { createLocalRagClient } from "./dependency/mcp/localRag.js";
 
-export enum DependencyType {
-  toolkit = "toolkit",
-  proxy = "proxy",
-  mcp = "mcp",
-  agentic = "agentic",
-}
+const TOOLKIT_DEPS: Record<ToolkitItem, () => Dependency> = {
+  [ToolkitItem.TOOLKIT_BUN]: createBunDependency,
+};
 
-export enum RuntimeItem {
-  ALGO_RTK = "ALGO_RTK",
-  TOOLKIT_BUN = "TOOLKIT_BUN",
-  PROXY_OLLAMA = "PROXY_OLLAMA",
-  MCP_LOCAL_AGENT = "MCP_LOCAL_AGENT",
-  AGENTIC_OPENCODE = "AGENTIC_OPENCODE",
-}
+const OPTIMIZER_DEPS: Record<OptimizerItem, () => Dependency> = {
+  [OptimizerItem.ALGO_RTK]: createRtkDependency,
+};
 
-interface RuntimeItemConfig {
-  type: DependencyType;
-  creator: () => Dependency;
-}
+const PROXY_DEPS: Record<ProxyItem, () => Dependency> = {
+  [ProxyItem.PROXY_OLLAMA]: createOllamaProxyDependency,
+};
 
-const RUNTIME_ITEMS: Record<RuntimeItem, RuntimeItemConfig> = {
-  [RuntimeItem.ALGO_RTK]: {
-    type: DependencyType.toolkit,
-    creator: createRtkDependency,
-  },
-  [RuntimeItem.TOOLKIT_BUN]: {
-    type: DependencyType.toolkit,
-    creator: createBunDependency,
-  },
-  [RuntimeItem.PROXY_OLLAMA]: {
-    type: DependencyType.proxy,
-    creator: createOllamaProxyDependency,
-  },
-  [RuntimeItem.MCP_LOCAL_AGENT]: {
-    type: DependencyType.mcp,
-    creator: createMcpLocalAgentDependency,
-  },
-  [RuntimeItem.AGENTIC_OPENCODE]: {
-    type: DependencyType.agentic,
-    creator: createOpencodeComponent,
-  },
+const MCP_DEPS: Record<McpItem, () => Dependency> = {
+  [McpItem.MCP_LOCAL_AGENT]: createMcpLocalAgentDependency,
+  [McpItem.MCP_LOCAL_RAG]: createLocalRagClient,
+};
+
+const AGENTIC_DEPS: Record<AgenticItem, () => Dependency> = {
+  [AgenticItem.AGENTIC_OPENCODE]: createOpencodeComponent,
 };
 
 export class BridgeService {
-  createDep(item: RuntimeItem): Dependency {
-    return RUNTIME_ITEMS[item].creator();
+  getDepsFromConfig(): Dependency[] {
+    return [];
   }
 
-  getDeps(): Dependency[] {
-    const runtime = configService.runtime;
-    return runtime.items.map((item) => this.createDep(item as RuntimeItem));
+  async getDepsFromPreferences(): Promise<Dependency[]> {
+    const { getPreferences } = await import("@db/pref.service.js");
+    const prefs = await getPreferences();
+    const deps: Dependency[] = [];
+
+    deps.push(TOOLKIT_DEPS[ToolkitItem.TOOLKIT_BUN]());
+
+    for (const algo of prefs.tokenOptimizatorAlgo) {
+      const item = getOptimizerItem(algo);
+      if (item !== undefined && OPTIMIZER_DEPS[item]) {
+        deps.push(OPTIMIZER_DEPS[item]());
+      }
+    }
+
+    const mcp = getMcpItem(prefs.preferredMcpServer);
+    if (mcp !== undefined && MCP_DEPS[mcp]) {
+      const mcpDep = MCP_DEPS[mcp]();
+      if (
+        "initFromPrefs" in mcpDep &&
+        typeof mcpDep.initFromPrefs === "function"
+      ) {
+        await (
+          mcpDep as { initFromPrefs: () => Promise<void> }
+        ).initFromPrefs();
+      }
+      deps.push(mcpDep);
+    }
+
+    const agentic = getAgenticItem(prefs.agentic);
+    if (agentic !== undefined && AGENTIC_DEPS[agentic]) {
+      deps.push(AGENTIC_DEPS[agentic]());
+    }
+
+    return deps;
   }
 }
 
 export const bridgeService = new BridgeService();
+

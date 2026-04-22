@@ -5,7 +5,6 @@ import { cwd } from "node:process";
 
 import type { ArgConfig, Command } from "./arg.config.js";
 import type { PathsConfig } from "./paths.config.js";
-import type { RuntimeConfig } from "./runtime.config.js";
 
 function loadEnv(targetDir: string): void {
   const envPath = resolve(targetDir, ".env");
@@ -25,10 +24,7 @@ function loadEnv(targetDir: string): void {
   } catch {}
 }
 
-const DEFAULTS = {
-  ollamaUrl: "http://192.168.1.50:11434",
-  embeddingModel: "lco-embedding-omni-gguf",
-};
+const DEFAULTS = {};
 
 function printHelp(): void {
   console.log(`wssch - Workspace Sandbox for AI
@@ -39,15 +35,13 @@ Commands:
   run         Start sandbox and run orchestrator (default)
   orchestrate Run orchestrator inside current environment
   init        Scaffold project without sandbox
+  database    Edit preferences in the database (alias: db)
   status     Show wssch status
 
 Options:
   --rtk-bin <path>     Path to RTK binary
-  --ollama-url <url>   Ollama server URL
-  --embedding-model <model> Embedding model
   --no-rtk            Disable RTK
   --no-rag            Disable RAG (MCP)
-  --no-ollama         Ollama not available
   --verbose, -v       Verbose output
   --force             Force overwrite
   --trust-hours <n>   Whitelist trust hours (default: 24)
@@ -62,7 +56,6 @@ Examples:
 interface FullConfig {
   args: ArgConfig;
   paths: PathsConfig;
-  runtime: RuntimeConfig;
 }
 
 class ConfigService {
@@ -88,20 +81,7 @@ class ConfigService {
       wssDataDir: `${args.targetDir}/.wssdata`,
     };
 
-    const items: string[] = [];
-    if (process.env.NO_RTK !== "true") items.push("ALGO_RTK");
-    items.push("TOOLKIT_BUN");
-    if (process.env.NO_OLLAMA !== "true") items.push("PROXY_OLLAMA");
-    if (process.env.NO_RAG !== "true") items.push("MCP_LOCAL_AGENT");
-    items.push("AGENTIC_OPENCODE");
-
-    const runtime: RuntimeConfig = {
-      ollamaUrl: process.env.OLLAMA_URL || DEFAULTS.ollamaUrl,
-      embeddingModel: process.env.EMBEDDING_MODEL || DEFAULTS.embeddingModel,
-      items,
-    };
-
-    this.config = { args, paths, runtime };
+    this.config = { args, paths };
   }
 
   private parseArgs(args: string[]): ArgConfig {
@@ -122,23 +102,13 @@ class ConfigService {
         case "init":
         case "status":
         case "deps":
+        case "database":
+        case "db":
           cmd = arg;
           break;
         case "--rtk-bin":
           if (next) {
             rtkBin = next;
-            i++;
-          }
-          break;
-        case "--ollama-url":
-          if (next) {
-            process.env.OLLAMA_URL = next;
-            i++;
-          }
-          break;
-        case "--embedding-model":
-          if (next) {
-            process.env.EMBEDDING_MODEL = next;
             i++;
           }
           break;
@@ -198,11 +168,6 @@ class ConfigService {
   get paths(): PathsConfig {
     if (!this.config) throw new Error("Config not initialized");
     return this.config.paths;
-  }
-
-  get runtime(): RuntimeConfig {
-    if (!this.config) throw new Error("Config not initialized");
-    return this.config.runtime;
   }
 
   get isInitialized(): boolean {

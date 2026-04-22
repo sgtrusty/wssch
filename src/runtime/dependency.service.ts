@@ -3,10 +3,10 @@ import { bridgeService } from "./bridge.service.js";
 import { Dependency } from "@runtime/runtime.interface.js";
 
 export class DepsInstaller {
-  private readonly deps: Dependency[] = [];
+  private deps: Dependency[] = [];
 
-  constructor() {
-    this.deps = bridgeService.getDeps();
+  async init(): Promise<void> {
+    this.deps = await bridgeService.getDepsFromPreferences();
     logger.debug(
       "deps",
       `Initialized deps: ${this.deps.map((d) => d.name).join(", ")}`,
@@ -66,6 +66,8 @@ export class DepsInstaller {
   }
 }
 
-export function createDepsInstaller(): DepsInstaller {
-  return new DepsInstaller();
+export async function createDepsInstaller(): Promise<DepsInstaller> {
+  const installer = new DepsInstaller();
+  await installer.init();
+  return installer;
 }

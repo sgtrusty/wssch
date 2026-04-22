@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { logger } from "@lib/logger.js";
+import { configService } from "@config/index.js";
 
 export interface ScaffoldConfig {
   targetDir: string;
@@ -20,7 +21,25 @@ export async function scaffold(config: ScaffoldConfig): Promise<void> {
 
   scaffoldOpencodeJson(opencodeDir, noRag);
 
+  const wssDataDir = join(targetDir, ".wssdata");
+  if (!existsSync(wssDataDir)) {
+    mkdirSync(wssDataDir, { recursive: true });
+  }
+  scaffoldWssdataGitignore(wssDataDir);
+
   logger.check("scaffold", `Created initial scaffold at ${targetDir}`);
+}
+
+function scaffoldWssdataGitignore(wssDataDir: string): void {
+  const gitignorePath = join(wssDataDir, ".gitignore");
+  const content = `*`;
+
+  try {
+    writeFileSync(gitignorePath, content);
+    logger.info("scaffold", `Wrote .gitignore to ${gitignorePath}`);
+  } catch (err) {
+    logger.warn("scaffold", "Failed to write .gitignore: " + err);
+  }
 }
 
 function scaffoldOpencodeJson(opencodeDir: string, noRag: boolean): void {
@@ -38,3 +57,4 @@ function scaffoldOpencodeJson(opencodeDir: string, noRag: boolean): void {
     throw err;
   }
 }
+
