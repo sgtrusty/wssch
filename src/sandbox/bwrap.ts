@@ -49,12 +49,6 @@ function buildBwrapArgs(): string[] {
 
   bwrapArgs.push(
     "--bind",
-    `${paths.wssCacheDir}/npm`,
-    SANDBOX_BINDINGS.npmCacheDir,
-  );
-
-  bwrapArgs.push(
-    "--bind",
     paths.wssOpencodeConfigDir,
     SANDBOX_BINDINGS.wssOpencodeConfigDir,
   );
@@ -132,4 +126,3 @@ export async function isBwrapAvailable(): Promise<boolean> {
     return false;
   }
 }
-

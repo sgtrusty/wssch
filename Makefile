@@ -35,5 +35,4 @@ install:
 
 clean:
 	rm -rf dist
-	rm -rf models
 	rm -f /usr/local/bin/wssch

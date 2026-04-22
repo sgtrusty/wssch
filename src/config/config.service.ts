@@ -65,16 +65,6 @@ interface FullConfig {
   runtime: RuntimeConfig;
 }
 
-function getDirname(): string {
-  try {
-    return typeof import.meta !== "undefined" && import.meta.url
-      ? dirname(fileURLToPath(import.meta.url))
-      : cwd();
-  } catch {
-    return cwd();
-  }
-}
-
 class ConfigService {
   private config: FullConfig | null = null;
 
@@ -90,12 +80,11 @@ class ConfigService {
       wssConfigDir,
       wssOpencodeConfigDir: inSandbox
         ? `${process.env.HOME}/.config/opencode`
-        : `${wssConfigDir}/opencode-config`,
+        : `${wssConfigDir}/opencode/config`,
       wssOpencodeCacheDir: inSandbox
         ? `${process.env.HOME}/.local/share/opencode`
-        : `${wssConfigDir}/opencode-share`,
+        : `${wssConfigDir}/opencode/share`,
       wssBinDir: `${wssConfigDir}/bin`,
-      wssCacheDir: `${wssConfigDir}/cache`,
       wssDataDir: `${args.targetDir}/.wssdata`,
     };
 

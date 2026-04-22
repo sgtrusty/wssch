@@ -185,9 +185,12 @@ export class LocalRagClient implements Dependency {
       });
     });
   }
+
+  preDeps(): string[] {
+    return ["ollama"];
+  }
 }
 
 export function createLocalRagClient(): LocalRagClient {
   return new LocalRagClient();
 }
-

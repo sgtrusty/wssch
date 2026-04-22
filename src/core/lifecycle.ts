@@ -11,10 +11,6 @@ export async function ensureDirs(): Promise<void> {
   const dirs = [
     args.targetDir,
     paths.wssBinDir,
-    paths.wssCacheDir,
-    `${paths.wssCacheDir}/npm`,
-    `${paths.wssCacheDir}/node_modules`,
-    `${paths.wssCacheDir}/models`,
     `${paths.wssOpencodeConfigDir}`,
     `${paths.wssOpencodeCacheDir}`,
     `${paths.wssDataDir}/mcp`,
@@ -87,3 +83,4 @@ export async function initProject(): Promise<void> {
   logger.info("lifecycle", `Ensuring .wssdata/ in ${paths.wssDataDir}`);
   await ensureDirs();
 }
+

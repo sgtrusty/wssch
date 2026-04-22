@@ -50,7 +50,6 @@ wssch /path/to/your/project
 ```bash
 wssch run [dir]     # Launch sandboxed AI assistant (default: cwd)
 wssch init [dir]   # Scaffold config in a project directory
-wssch status [dir] # Check environment and configuration
 ```
 
 ## Configuration Storage
@@ -58,9 +57,7 @@ wssch status [dir] # Check environment and configuration
 `wssch` stores data in `~/.config/wssch/`:
 
 - `~/.config/wssch/bin/` — Local binaries (bun, rtk)
-- `~/.config/wssch/cache/` — npm and node_modules cache
-- `~/.config/wssch/opencode-config/` — OpenCode config template
-- `~/.config/wssch/opencode-share/` — Shared OpenCode data
+- `~/.config/wssch/opencode/` — OpenCode config/shared
 - `~/.config/wssch/whitelist.db` — Directory whitelist database
 
 Project-specific data is stored in `.wssdata/` in your project directory:
@@ -79,4 +76,3 @@ wssch aims to be extensible — a unified interface for plugging in different AI
 - Workspace-level policies for fine-grained control
 
 The goal: your workspace, your rules, any AI assistant.
-

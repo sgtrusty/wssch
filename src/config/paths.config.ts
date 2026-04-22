@@ -3,7 +3,5 @@ export interface PathsConfig {
   wssOpencodeConfigDir: string;
   wssOpencodeCacheDir: string;
   wssBinDir: string;
-  wssCacheDir: string;
   wssDataDir: string;
 }
-

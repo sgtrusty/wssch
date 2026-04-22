@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import { mkdir } from "node:fs/promises";
 import { configService } from "@config/index.js";
 import { installerService } from "@runtime/installer/installer.service.js";
 import type { Dependency } from "@runtime/runtime.interface.js";
@@ -66,24 +67,22 @@ export class McpLocalAgentDependency implements Dependency {
       opencodeJson.mcp = {};
     }
 
-    if (!opencodeJson.mcp["mcp-local-agent"]) {
-      opencodeJson.mcp["mcp-local-agent"] = {
+    if (!opencodeJson.mcp["shinpr-mcp-localdb"]) {
+      const mcpShinprDir = join(paths.wssDataDir, "mcp/shinpr");
+      await mkdir(mcpShinprDir, { recursive: true });
+      opencodeJson.mcp["shinpr-mcp-localdb"] = {
         type: "local",
         command: [this.binPath],
         enabled: true,
         environment: {
-          BASE_DIR: "/home/user/project",
-          DB_PATH: "/home/user/.localdata/rag.db",
-          CACHE_DIR: "/home/user/.localdata/cache/models",
+          BASE_DIR: paths.wssDataDir,
+          DB_PATH: join(mcpShinprDir, "rag.db"),
+          CACHE_DIR: join(mcpShinprDir, "models"),
         },
       };
     }
 
     writeFileSync(opencodeJsonPath, JSON.stringify(opencodeJson, null, 2));
-  }
-
-  preDeps(): string[] {
-    return ["ollama"];
   }
 }
 
