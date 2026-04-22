@@ -1,11 +1,11 @@
 import { spawn, ChildProcess, StdioOptions } from "node:child_process";
-import { access, constants } from "node:fs/promises";
+import { access, constants, readdir } from "node:fs/promises";
 import { logger } from "@lib/logger.js";
 import { configService, SANDBOX_BINDINGS } from "@config/index.js";
 
 const BWARP_BIN = "/usr/bin/bwrap";
 
-function buildBwrapArgs(): string[] {
+async function buildBwrapArgs(): Promise<string[]> {
   const bwrapArgs: string[] = [];
   const paths = configService.paths;
   const cfg = configService.args;
@@ -30,6 +30,15 @@ function buildBwrapArgs(): string[] {
 
   const args = configService.args;
   bwrapArgs.push("--bind", args.targetDir, SANDBOX_BINDINGS.targetDir);
+
+  try {
+    await readdir(`${args.targetDir}/.git`);
+    bwrapArgs.push(
+      "--ro-bind",
+      `${args.targetDir}/.git`,
+      `${SANDBOX_BINDINGS.targetDir}/.git`,
+    );
+  } catch {}
   bwrapArgs.push(
     "--chdir",
     SANDBOX_BINDINGS.targetDir,
@@ -95,7 +104,7 @@ function buildBwrapArgs(): string[] {
 export async function spawnWithSandbox(): Promise<void> {
   logger.info("sandbox", "Starting sandbox...");
 
-  const bwrapArgs = buildBwrapArgs();
+  const bwrapArgs = await buildBwrapArgs();
 
   const bashCmd = `exec wssch`;
 
