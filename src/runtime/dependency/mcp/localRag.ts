@@ -1,8 +1,12 @@
 import { spawn, ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { logger } from "@lib/logger.js";
 import { configService } from "@config/index.js";
+import { logger } from "@lib/logger.js";
+import {
+  compileGithubToBinary,
+  isExecutable,
+} from "@runtime/dependency/installer.util.js";
 import type { Dependency } from "@runtime/runtime.interface.js";
 
 export interface RagQueryResult {
@@ -24,13 +28,15 @@ export interface LocalRagConfig {
 
 export class LocalRagClient implements Dependency {
   readonly name = "MCP (local-RAG)";
-  readonly binPath = "";
+  readonly binPath: string;
   private process: ChildProcess | null = null;
   private config: LocalRagConfig;
 
   constructor() {
     const paths = configService.paths;
     const runtime = configService.runtime;
+
+    this.binPath = join(paths.wssBinDir, "mcp-local-rag");
 
     this.config = {
       dbPath: join(paths.wssConfigDir, "rag.db"),
@@ -41,32 +47,38 @@ export class LocalRagClient implements Dependency {
   }
 
   async isAvailable(): Promise<boolean> {
-    const mcpBin = join(
-      "/home/user/cli",
-      "node_modules",
-      ".bin",
-      "mcp-local-rag",
-    );
-    return existsSync(mcpBin);
+    return isExecutable(this.binPath);
   }
 
-  async install(): Promise<void> {}
+  async install(): Promise<void> {
+    await compileGithubToBinary(
+      "https://github.com/shinpr/mcp-local-rag",
+      "mcp-local-rag",
+      {
+        entryPoint: "src/index.ts",
+        externals: [
+          "@lancedb/lancedb",
+          "onnxruntime-node",
+          "@huggingface/transformers",
+          "mupdf",
+          "jsdom",
+          "canvas",
+        ],
+      },
+    );
+  }
 
   async start(): Promise<void> {
     if (this.isRunning()) return;
 
     logger.progress(this.name, "Starting MCP (local-RAG)...");
 
-    const cliDir = "/home/user/cli";
-    const mcpBin = join(cliDir, "node_modules", ".bin", "mcp-local-rag");
-
-    if (!existsSync(mcpBin)) {
-      logger.warn(this.name, "mcp-local-rag not found in node_modules");
+    if (!existsSync(this.binPath)) {
+      logger.warn(this.name, "mcp-local-rag not found");
       return;
     }
 
-    this.process = spawn(mcpBin, [], {
-      cwd: "/home/user/project",
+    this.process = spawn(this.binPath, [], {
       stdio: "ignore",
       env: {
         ...process.env,
@@ -109,7 +121,7 @@ export class LocalRagClient implements Dependency {
   }
 
   async ingest(directories: string[]): Promise<RagIngestResult> {
-    const args = ["-y", "mcp-local-rag", "ingest", ...directories];
+    const args = ["ingest", ...directories];
     const result = await this.runCommand(args);
 
     if (result.code !== 0) {
@@ -123,14 +135,7 @@ export class LocalRagClient implements Dependency {
   }
 
   async query(query: string, topK: number = 5): Promise<RagQueryResult> {
-    const args = [
-      "-y",
-      "mcp-local-rag",
-      "query",
-      "--top-k",
-      String(topK),
-      query,
-    ];
+    const args = ["query", "--top-k", String(topK), query];
     const result = await this.runCommand(args);
 
     if (result.code !== 0) {
@@ -146,7 +151,7 @@ export class LocalRagClient implements Dependency {
   }
 
   async status(): Promise<{ documents: number; chunks: number }> {
-    const args = ["-y", "mcp-local-rag", "status"];
+    const args = ["status"];
     const result = await this.runCommand(args);
 
     if (result.code !== 0) {
@@ -166,7 +171,7 @@ export class LocalRagClient implements Dependency {
     args: string[],
   ): Promise<{ code: number; stdout: string; stderr: string }> {
     return new Promise((resolve) => {
-      const proc = spawn("/usr/bin/npx", args, { stdio: "pipe" });
+      const proc = spawn(this.binPath, args, { stdio: "pipe" });
       let stdout = "";
       let stderr = "";
 
@@ -191,3 +196,4 @@ export class LocalRagClient implements Dependency {
 export function createLocalRagClient(): LocalRagClient {
   return new LocalRagClient();
 }
+

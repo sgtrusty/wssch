@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { configService } from "@config/index.js";
 import type { Dependency } from "@runtime/runtime.interface.js";
+import { compileGithubToBinary } from "../installer.util.js";
 
 interface OpencodeJson {
   mcp?: Record<string, unknown>;
@@ -12,14 +13,14 @@ export class McpLocalAgentDependency implements Dependency {
   readonly binPath: string;
 
   constructor() {
-    this.binPath = "";
+    this.binPath = join(configService.paths.wssBinDir, "mcp-local-rag");
   }
 
   async isAvailable(): Promise<boolean> {
+    if (!existsSync(this.binPath)) return false;
+
     const paths = configService.paths;
     const opencodeJsonPath = join(paths.wssOpencodeConfigDir, "opencode.json");
-
-    // TODO: add shared logic for localAgent/localRag (for using this npm lib) to have preinstalled bin somwhere
 
     if (!existsSync(opencodeJsonPath)) {
       return false;
@@ -27,7 +28,7 @@ export class McpLocalAgentDependency implements Dependency {
 
     try {
       const content = readFileSync(opencodeJsonPath, "utf-8");
-      const opencodeJson: OpencodeJson = JSON.parse(content);
+      const opencodeJson = JSON.parse(content);
       return !!(opencodeJson.mcp && opencodeJson.mcp["mcp-local-agent"]);
     } catch {
       return false;
@@ -35,6 +36,22 @@ export class McpLocalAgentDependency implements Dependency {
   }
 
   async install(): Promise<void> {
+    await compileGithubToBinary(
+      "https://github.com/shinpr/mcp-local-rag",
+      "mcp-local-rag",
+      {
+        entryPoint: "src/index.ts",
+        externals: [
+          "@lancedb/lancedb",
+          "onnxruntime-node",
+          "@huggingface/transformers",
+          "mupdf", // Adding this since it often has native bindings too
+          "jsdom",
+          "canvas",
+        ],
+      },
+    );
+
     const paths = configService.paths;
     const opencodeJsonPath = join(paths.wssOpencodeConfigDir, "opencode.json");
 
@@ -53,7 +70,7 @@ export class McpLocalAgentDependency implements Dependency {
     if (!opencodeJson.mcp["mcp-local-agent"]) {
       opencodeJson.mcp["mcp-local-agent"] = {
         type: "local",
-        command: ["bun", "x", "mcp-local-rag"],
+        command: [this.binPath],
         enabled: true,
         environment: {
           BASE_DIR: "/home/user/project",
@@ -74,3 +91,4 @@ export class McpLocalAgentDependency implements Dependency {
 export function createMcpLocalAgentDependency(): McpLocalAgentDependency {
   return new McpLocalAgentDependency();
 }
+

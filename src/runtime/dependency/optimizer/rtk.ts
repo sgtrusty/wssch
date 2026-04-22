@@ -4,13 +4,13 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { logger } from "@lib/logger.js";
 import { configService } from "@config/index.js";
-import type { Dependency } from "../dependency.interface.js";
+import type { Dependency } from "@runtime/runtime.interface.js";
 import {
   safeInstallBin,
   downloadUrl,
   extractTar,
   isExecutable,
-} from "../dependency.util.js";
+} from "@runtime/dependency.util.js";
 
 const REPO = "rtk-ai/rtk";
 const DOWNLOAD_HOST = "github.com";

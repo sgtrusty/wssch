@@ -3,8 +3,8 @@ import { logger, initLogger } from "@lib/logger.js";
 import { configService } from "@config/index.js";
 import { preflight, ensureDirs } from "@core/lifecycle.js";
 import { isBwrapAvailable } from "@sandbox/bwrap.js";
-import { createDepsInstaller } from "@runtime/dependency/dependency.service.js";
-import { createOrchestrator } from "@runtime/orchest/orchest.service.js";
+import { createDepsInstaller } from "@runtime/dependency.service.js";
+import { createOrchestrator } from "@runtime/orchest.service.js";
 
 export { logger, initLogger } from "@lib/logger.js";
 export { preflight, ensureDirs } from "@core/lifecycle.js";
