@@ -1,12 +1,10 @@
 import { spawn, ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import { access, constants } from "node:fs/promises";
 import { configService } from "@config/index.js";
 import { logger } from "@lib/logger.js";
-import {
-  compileGithubToBinary,
-  isExecutable,
-} from "@runtime/dependency/installer.util.js";
+import { installerService } from "@runtime/installer/installer.service.js";
 import type { Dependency } from "@runtime/runtime.interface.js";
 
 export interface RagQueryResult {
@@ -47,25 +45,21 @@ export class LocalRagClient implements Dependency {
   }
 
   async isAvailable(): Promise<boolean> {
-    return isExecutable(this.binPath);
+    try {
+      await access(this.binPath, constants.X_OK);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   async install(): Promise<void> {
-    await compileGithubToBinary(
-      "https://github.com/shinpr/mcp-local-rag",
-      "mcp-local-rag",
-      {
-        entryPoint: "src/index.ts",
-        externals: [
-          "@lancedb/lancedb",
-          "onnxruntime-node",
-          "@huggingface/transformers",
-          "mupdf",
-          "jsdom",
-          "canvas",
-        ],
-      },
-    );
+    const strategy = installerService.npx({
+      packageName: "@shinpr/mcp-local-rag",
+      binName: "mcp-local-rag",
+      version: "0.1.3.0",
+    });
+    await installerService.install(strategy, this.binPath);
   }
 
   async start(): Promise<void> {

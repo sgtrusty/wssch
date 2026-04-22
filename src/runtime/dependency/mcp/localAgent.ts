@@ -1,8 +1,8 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { configService } from "@config/index.js";
+import { installerService } from "@runtime/installer/installer.service.js";
 import type { Dependency } from "@runtime/runtime.interface.js";
-import { compileGithubToBinary } from "../installer.util.js";
 
 interface OpencodeJson {
   mcp?: Record<string, unknown>;
@@ -36,21 +36,20 @@ export class McpLocalAgentDependency implements Dependency {
   }
 
   async install(): Promise<void> {
-    await compileGithubToBinary(
-      "https://github.com/shinpr/mcp-local-rag",
-      "mcp-local-rag",
-      {
-        entryPoint: "src/index.ts",
-        externals: [
-          "@lancedb/lancedb",
-          "onnxruntime-node",
-          "@huggingface/transformers",
-          "mupdf", // Adding this since it often has native bindings too
-          "jsdom",
-          "canvas",
-        ],
-      },
-    );
+    const strategy = installerService.esbuild({
+      repoUrl: "https://github.com/shinpr/mcp-local-rag",
+      binName: "mcp-local-rag",
+      entryPoint: "src/index.ts",
+      externals: [
+        "@lancedb/lancedb",
+        "onnxruntime-node",
+        "@huggingface/transformers",
+        "mupdf",
+        "jsdom",
+        "canvas",
+      ],
+    });
+    await installerService.install(strategy, this.binPath);
 
     const paths = configService.paths;
     const opencodeJsonPath = join(paths.wssOpencodeConfigDir, "opencode.json");
@@ -91,4 +90,3 @@ export class McpLocalAgentDependency implements Dependency {
 export function createMcpLocalAgentDependency(): McpLocalAgentDependency {
   return new McpLocalAgentDependency();
 }
-
