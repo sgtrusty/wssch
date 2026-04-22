@@ -21,6 +21,7 @@ export enum ProxyItem {
 export enum McpItem {
   MCP_LOCAL_AGENT = 0,
   MCP_LOCAL_RAG = 1,
+  MCP_LUMEN = 2,
 }
 
 export enum AgenticItem {
@@ -79,6 +80,13 @@ export const MCP_OPTIONS: DepOption<McpItem>[] = [
     type: DepType.mcp,
     prefs: ["embeddingModel"],
   },
+  {
+    id: McpItem.MCP_LUMEN,
+    name: "lumen",
+    description: "Lumen semantic search",
+    type: DepType.mcp,
+    prefs: ["embeddingModel"],
+  },
 ];
 
 export const AGENTIC_OPTIONS: DepOption<AgenticItem>[] = [
@@ -101,4 +109,3 @@ export function getOptimizerItem(name: string): OptimizerItem | undefined {
 export function getAgenticItem(name: string): AgenticItem | undefined {
   return AGENTIC_OPTIONS.find((o) => o.name === name)?.id;
 }
-

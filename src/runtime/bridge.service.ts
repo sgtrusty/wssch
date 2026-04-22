@@ -17,6 +17,7 @@ import {
   getAgenticItem,
 } from "@runtime/dependency.enum.js";
 import { createLocalRagClient } from "./dependency/mcp/localRag.js";
+import { createLumenMcpDependency } from "./dependency/mcp/lumen.js";
 
 const TOOLKIT_DEPS: Record<ToolkitItem, () => Dependency> = {
   [ToolkitItem.TOOLKIT_BUN]: createBunDependency,
@@ -33,6 +34,7 @@ const PROXY_DEPS: Record<ProxyItem, () => Dependency> = {
 const MCP_DEPS: Record<McpItem, () => Dependency> = {
   [McpItem.MCP_LOCAL_AGENT]: createMcpLocalAgentDependency,
   [McpItem.MCP_LOCAL_RAG]: createLocalRagClient,
+  [McpItem.MCP_LUMEN]: createLumenMcpDependency,
 };
 
 const AGENTIC_DEPS: Record<AgenticItem, () => Dependency> = {
@@ -69,6 +71,18 @@ export class BridgeService {
           mcpDep as { initFromPrefs: () => Promise<void> }
         ).initFromPrefs();
       }
+
+      const mcpPreDeps = mcpDep.preDeps?.() || [];
+      for (const pred of mcpPreDeps) {
+        const predDep = this.resolvePreDep(pred.type, pred.item);
+        if (predDep) {
+          if (predDep.initFromPrefs) {
+            await predDep.initFromPrefs();
+          }
+          deps.push(predDep);
+        }
+      }
+
       deps.push(mcpDep);
     }
 
@@ -78,6 +92,23 @@ export class BridgeService {
     }
 
     return deps;
+  }
+
+  private resolvePreDep(type: DepType, item: number): Dependency | undefined {
+    switch (type) {
+      case DepType.toolkit:
+        return TOOLKIT_DEPS[item as ToolkitItem]?.();
+      case DepType.optimizer:
+        return OPTIMIZER_DEPS[item as OptimizerItem]?.();
+      case DepType.proxy:
+        return PROXY_DEPS[item as ProxyItem]?.();
+      case DepType.mcp:
+        return MCP_DEPS[item as McpItem]?.();
+      case DepType.agentic:
+        return AGENTIC_DEPS[item as AgenticItem]?.();
+      default:
+        return undefined;
+    }
   }
 }
 

@@ -4,10 +4,7 @@ import { mkdir } from "node:fs/promises";
 import { configService } from "@config/index.js";
 import { installerService } from "@runtime/installer/installer.service.js";
 import type { Dependency } from "@runtime/runtime.interface.js";
-
-interface OpencodeJson {
-  mcp?: Record<string, unknown>;
-}
+import type { OpencodeJson } from "./mcp.interface.js";
 
 export class McpLocalAgentDependency implements Dependency {
   readonly name = "Shinpr MCP LocalDB";

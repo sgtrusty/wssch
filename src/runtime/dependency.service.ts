@@ -19,29 +19,8 @@ export class DepsInstaller {
   }
 
   private async installWithPreDeps(): Promise<void> {
-    const pending = new Set(this.deps);
-    const installed = new Set<string>();
-
-    while (pending.size > 0) {
-      let progress = false;
-
-      for (const dep of pending) {
-        const preDeps = dep.preDeps?.() || [];
-        const canInstall = preDeps.every((p) => installed.has(p));
-
-        if (canInstall) {
-          await this.installDep(dep);
-          pending.delete(dep);
-          installed.add(dep.name.toLowerCase());
-          progress = true;
-        }
-      }
-
-      if (!progress && pending.size > 0) {
-        const remaining = [...pending].map((d) => d.name).join(", ");
-        logger.warn("deps", `Circular deps or missing preDeps: ${remaining}`);
-        break;
-      }
+    for (const dep of this.deps) {
+      await this.installDep(dep);
     }
   }
 

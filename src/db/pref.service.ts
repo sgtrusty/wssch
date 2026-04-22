@@ -17,12 +17,15 @@ export interface Preferences {
   updatedAt: number;
 }
 
-const DEFAULT_PREFERENCES: Omit<Preferences, "initializedAt" | "initialCheck" | "updatedAt"> = {
+const DEFAULT_PREFERENCES: Omit<
+  Preferences,
+  "initializedAt" | "initialCheck" | "updatedAt"
+> = {
   preferredMcpServer: "local",
   tokenOptimizatorAlgo: ["RAG"],
   toolkit: "bun",
   agentic: "opencode",
-  ollamaUrl: "http://192.168.1.50:11434",
+  ollamaUrl: "http://localhost:11434",
   embeddingModel: "Xenova/all-MiniLM-L6-v2",
 };
 
@@ -52,12 +55,17 @@ export async function initPreferences(): Promise<void> {
 
   const now = Math.floor(Date.now() / 1000);
   for (const [key, value] of Object.entries(DEFAULT_PREFERENCES)) {
-    const val = typeof value === "object" ? JSON.stringify(value) : String(value);
+    const val =
+      typeof value === "object" ? JSON.stringify(value) : String(value);
     try {
-      const proc = spawn("sqlite3", [
-        dbPath,
-        `INSERT OR IGNORE INTO preferences (key, value) VALUES ('${key}', '${val}');`,
-      ], { stdio: "ignore" });
+      const proc = spawn(
+        "sqlite3",
+        [
+          dbPath,
+          `INSERT OR IGNORE INTO preferences (key, value) VALUES ('${key}', '${val}');`,
+        ],
+        { stdio: "ignore" },
+      );
       await new Promise<void>((resolve) => {
         proc.on("close", () => resolve());
         proc.on("error", () => resolve());
@@ -66,10 +74,14 @@ export async function initPreferences(): Promise<void> {
   }
 
   try {
-    const proc = spawn("sqlite3", [
-      dbPath,
-      `INSERT OR IGNORE INTO preferences (key, value) VALUES ('initializedAt', '${now}');`,
-    ], { stdio: "ignore" });
+    const proc = spawn(
+      "sqlite3",
+      [
+        dbPath,
+        `INSERT OR IGNORE INTO preferences (key, value) VALUES ('initializedAt', '${now}');`,
+      ],
+      { stdio: "ignore" },
+    );
     await new Promise<void>((resolve) => {
       proc.on("close", () => resolve());
       proc.on("error", () => resolve());
@@ -77,10 +89,14 @@ export async function initPreferences(): Promise<void> {
   } catch {}
 
   try {
-    const proc = spawn("sqlite3", [
-      dbPath,
-      `INSERT OR IGNORE INTO preferences (key, value) VALUES ('updatedAt', '${now}');`,
-    ], { stdio: "ignore" });
+    const proc = spawn(
+      "sqlite3",
+      [
+        dbPath,
+        `INSERT OR IGNORE INTO preferences (key, value) VALUES ('updatedAt', '${now}');`,
+      ],
+      { stdio: "ignore" },
+    );
     await new Promise<void>((resolve) => {
       proc.on("close", () => resolve());
       proc.on("error", () => resolve());
@@ -93,13 +109,19 @@ export async function getPreferences(): Promise<Preferences> {
   const prefs: Record<string, string> = {};
 
   try {
-    const proc = spawn("sqlite3", [dbPath, "SELECT key, value FROM preferences;"], {
-      stdio: "pipe",
-    });
+    const proc = spawn(
+      "sqlite3",
+      [dbPath, "SELECT key, value FROM preferences;"],
+      {
+        stdio: "pipe",
+      },
+    );
 
     const output = await new Promise<string>((resolve) => {
       let data = "";
-      proc.stdout?.on("data", (d) => { data += d; });
+      proc.stdout?.on("data", (d) => {
+        data += d;
+      });
       proc.on("close", () => resolve(data));
     });
 
@@ -127,19 +149,26 @@ export async function getPreferences(): Promise<Preferences> {
   };
 }
 
-export async function updatePreferences(updates: Partial<Preferences>): Promise<void> {
+export async function updatePreferences(
+  updates: Partial<Preferences>,
+): Promise<void> {
   const dbPath = getDbPath();
   const now = Math.floor(Date.now() / 1000);
 
   for (const [key, value] of Object.entries(updates)) {
     if (key === "initializedAt") continue;
-    const val = typeof value === "object" ? JSON.stringify(value) : String(value);
+    const val =
+      typeof value === "object" ? JSON.stringify(value) : String(value);
 
     try {
-      const proc = spawn("sqlite3", [
-        dbPath,
-        `INSERT OR REPLACE INTO preferences (key, value) VALUES ('${key}', '${val}');`,
-      ], { stdio: "ignore" });
+      const proc = spawn(
+        "sqlite3",
+        [
+          dbPath,
+          `INSERT OR REPLACE INTO preferences (key, value) VALUES ('${key}', '${val}');`,
+        ],
+        { stdio: "ignore" },
+      );
       await new Promise<void>((resolve) => {
         proc.on("close", () => resolve());
         proc.on("error", () => resolve());
@@ -148,10 +177,14 @@ export async function updatePreferences(updates: Partial<Preferences>): Promise<
   }
 
   try {
-    const proc = spawn("sqlite3", [
-      dbPath,
-      `INSERT OR REPLACE INTO preferences (key, value) VALUES ('updatedAt', '${now}');`,
-    ], { stdio: "ignore" });
+    const proc = spawn(
+      "sqlite3",
+      [
+        dbPath,
+        `INSERT OR REPLACE INTO preferences (key, value) VALUES ('updatedAt', '${now}');`,
+      ],
+      { stdio: "ignore" },
+    );
     await new Promise<void>((resolve) => {
       proc.on("close", () => resolve());
       proc.on("error", () => resolve());
@@ -163,14 +196,17 @@ export async function isPreferencesInitialized(): Promise<boolean> {
   const dbPath = getDbPath();
 
   try {
-    const proc = spawn("sqlite3", [
-      dbPath,
-      "SELECT value FROM preferences WHERE key = 'initializedAt';",
-    ], { stdio: "pipe" });
+    const proc = spawn(
+      "sqlite3",
+      [dbPath, "SELECT value FROM preferences WHERE key = 'initializedAt';"],
+      { stdio: "pipe" },
+    );
 
     const output = await new Promise<string>((resolve) => {
       let data = "";
-      proc.stdout?.on("data", (d) => { data += d; });
+      proc.stdout?.on("data", (d) => {
+        data += d;
+      });
       proc.on("close", () => resolve(data));
     });
 
@@ -184,14 +220,17 @@ export async function isInitialCheckComplete(): Promise<boolean> {
   const dbPath = getDbPath();
 
   try {
-    const proc = spawn("sqlite3", [
-      dbPath,
-      "SELECT value FROM preferences WHERE key = 'initialCheck';",
-    ], { stdio: "pipe" });
+    const proc = spawn(
+      "sqlite3",
+      [dbPath, "SELECT value FROM preferences WHERE key = 'initialCheck';"],
+      { stdio: "pipe" },
+    );
 
     const output = await new Promise<string>((resolve) => {
       let data = "";
-      proc.stdout?.on("data", (d) => { data += d; });
+      proc.stdout?.on("data", (d) => {
+        data += d;
+      });
       proc.on("close", () => resolve(data));
     });
 
@@ -200,3 +239,4 @@ export async function isInitialCheckComplete(): Promise<boolean> {
     return false;
   }
 }
+

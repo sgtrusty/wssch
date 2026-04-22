@@ -5,8 +5,9 @@ import { access, constants } from "node:fs/promises";
 import { logger } from "@lib/logger.js";
 import { installerService } from "@runtime/installer/installer.service.js";
 import { configService } from "@config/index.js";
-import type { Dependency } from "@runtime/runtime.interface.js";
+import type { Dependency, DepRef } from "@runtime/runtime.interface.js";
 import { getPreferences } from "@db/pref.service.js";
+import { DepType, ProxyItem } from "@runtime/dependency.enum.js";
 import { createOllamaProxyDependency } from "../proxy/ollamaProxy.js";
 
 export interface RagQueryResult {
@@ -194,8 +195,8 @@ export class LocalRagClient implements Dependency {
     });
   }
 
-  preDeps(): string[] {
-    return ["ollama"];
+  preDeps(): DepRef[] {
+    return [{ type: DepType.proxy, item: ProxyItem.PROXY_OLLAMA }];
   }
 }
 

@@ -48,10 +48,12 @@ export class DirectInstallerStrategy implements InstallerStrategy {
   readonly name = "direct";
   private downloadUrl: string;
   private expectedBinName: string;
+  private binaryOnly: boolean;
 
-  constructor(downloadUrl: string, expectedBinName: string) {
+  constructor(downloadUrl: string, expectedBinName: string, binaryOnly = false) {
     this.downloadUrl = downloadUrl;
     this.expectedBinName = expectedBinName;
+    this.binaryOnly = binaryOnly;
   }
 
   async isInstalled(binPath: string): Promise<boolean> {
@@ -70,20 +72,33 @@ export class DirectInstallerStrategy implements InstallerStrategy {
     await mkdir(binDir, { recursive: true });
 
     const tempDir = tmpdir();
-    const archivePath = join(tempDir, `${this.expectedBinName}.tar.gz`);
 
-    logger.progress("subdep", `Downloading ${this.downloadUrl}`);
-    await runCommand("curl", ["-fsSL", "-o", archivePath, this.downloadUrl]);
+    if (this.binaryOnly) {
+      const downloadedBin = join(tempDir, this.expectedBinName);
+      logger.progress("subdep", `Downloading ${this.downloadUrl}`);
+      await runCommand("curl", ["-fsSL", "-o", downloadedBin, this.downloadUrl]);
 
-    const downloadedBin = join(tempDir, this.expectedBinName);
-    await extractTarball(archivePath, tempDir);
+      if (!existsSync(downloadedBin)) {
+        throw new Error(`${this.expectedBinName} not found after download`);
+      }
 
-    if (!existsSync(downloadedBin)) {
-      throw new Error(`${this.expectedBinName} not found after extraction`);
+      await safeInstallBin(downloadedBin, binPath);
+    } else {
+      const archivePath = join(tempDir, `${this.expectedBinName}.tar.gz`);
+
+      logger.progress("subdep", `Downloading ${this.downloadUrl}`);
+      await runCommand("curl", ["-fsSL", "-o", archivePath, this.downloadUrl]);
+
+      const extractedBin = join(tempDir, this.expectedBinName);
+      await extractTarball(archivePath, tempDir);
+
+      if (!existsSync(extractedBin)) {
+        throw new Error(`${this.expectedBinName} not found after extraction`);
+      }
+
+      await safeInstallBin(extractedBin, binPath);
+      await rm(archivePath, { force: true });
     }
-
-    await safeInstallBin(downloadedBin, binPath);
-    await rm(archivePath, { force: true });
 
     logger.check("subdep", `${this.expectedBinName} installed to ${binDir}`);
   }

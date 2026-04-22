@@ -10,8 +10,8 @@ export class InstallerService {
     return new NpxInstallerStrategy(options);
   }
 
-  direct(downloadUrl: string, expectedBinName: string): DirectInstallerStrategy {
-    return new DirectInstallerStrategy(downloadUrl, expectedBinName);
+  direct(downloadUrl: string, expectedBinName: string, binaryOnly = false): DirectInstallerStrategy {
+    return new DirectInstallerStrategy(downloadUrl, expectedBinName, binaryOnly);
   }
 
   esbuild(options: {

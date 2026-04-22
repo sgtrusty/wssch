@@ -5,7 +5,7 @@ import type { Dependency } from "@runtime/runtime.interface.js";
 export class OllamaProxyDependency implements Dependency {
   readonly name = "Ollama";
   readonly binPath = "";
-  private url = "http://192.168.1.50:11434";
+  private url = "http://localhost:11434";
 
   constructor() {}
 
@@ -16,7 +16,9 @@ export class OllamaProxyDependency implements Dependency {
 
   async isAvailable(): Promise<boolean> {
     try {
-      const proc = spawn("curl", ["-sf", `${this.url}/api/tags`], { stdio: "ignore" });
+      const proc = spawn("curl", ["-sf", `${this.url}/api/tags`], {
+        stdio: "ignore",
+      });
       const code = await new Promise<number>((resolve) => {
         proc.on("close", (c) => resolve(c ?? 0));
       });
@@ -32,3 +34,4 @@ export class OllamaProxyDependency implements Dependency {
 export function createOllamaProxyDependency(): OllamaProxyDependency {
   return new OllamaProxyDependency();
 }
+

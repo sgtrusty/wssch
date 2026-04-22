@@ -6,6 +6,11 @@ import {
   OPTIMIZER_OPTIONS,
   AGENTIC_OPTIONS,
 } from "@runtime/dependency.enum.js";
+import { McpLocalAgentDependency } from "@runtime/dependency/mcp/localAgent.js";
+import { LocalRagClient } from "@runtime/dependency/mcp/localRag.js";
+import { LumenMcpDependency } from "@runtime/dependency/mcp/lumen.js";
+import type { DepRef } from "@runtime/runtime.interface.js";
+import { DepType, ProxyItem } from "@runtime/dependency.enum.js";
 
 async function promptPreferences(
   current?: Preferences,
@@ -15,7 +20,7 @@ async function promptPreferences(
     tokenOptimizatorAlgo: ["RAG"],
     toolkit: "bun",
     agentic: "opencode",
-    ollamaUrl: "http://192.168.1.50:11434",
+    ollamaUrl: "http://localhost:11434",
     embeddingModel: "Xenova/all-MiniLM-L6-v2",
   };
 
@@ -46,28 +51,51 @@ async function promptPreferences(
     },
   ]);
 
-  const mcp = MCP_OPTIONS.find(o => o.name === answers.preferredMcpServer);
-  const neededPrefs = new Set(mcp?.prefs || []);
+  const MCP_DEP_CLASSES: Record<string, new () => any> = {
+    localMcp: McpLocalAgentDependency,
+    localRag: LocalRagClient,
+    lumen: LumenMcpDependency,
+  };
+
+  function getPreDepPrefs(preDeps: DepRef[]): string[] {
+    const prefs: string[] = [];
+    for (const pred of preDeps) {
+      if (pred.type === DepType.proxy && pred.item === ProxyItem.PROXY_OLLAMA) {
+        prefs.push("ollamaUrl");
+      }
+    }
+    return prefs;
+  }
+
+  const mcp = MCP_OPTIONS.find((o) => o.name === answers.preferredMcpServer);
+  const mcpClass = mcp ? MCP_DEP_CLASSES[mcp.name] : undefined;
+  const preDeps = mcpClass?.prototype.preDeps?.call({}) || [];
+  const preDepPrefs = getPreDepPrefs(preDeps);
+  const neededPrefs = new Set([...(mcp?.prefs || []), ...preDepPrefs]);
 
   let ollamaUrl = prefs.ollamaUrl;
   let embeddingModel = prefs.embeddingModel;
 
   if (neededPrefs.has("ollamaUrl")) {
-    const urlAns = await inquirer.prompt([{
-      type: "input",
-      name: "ollamaUrl",
-      message: "Ollama URL:",
-      default: prefs.ollamaUrl,
-    }]);
+    const urlAns = await inquirer.prompt([
+      {
+        type: "input",
+        name: "ollamaUrl",
+        message: "Ollama URL:",
+        default: prefs.ollamaUrl,
+      },
+    ]);
     ollamaUrl = urlAns.ollamaUrl;
   }
   if (neededPrefs.has("embeddingModel")) {
-    const embAns = await inquirer.prompt([{
-      type: "input",
-      name: "embeddingModel",
-      message: "Embedding model:",
-      default: prefs.embeddingModel,
-    }]);
+    const embAns = await inquirer.prompt([
+      {
+        type: "input",
+        name: "embeddingModel",
+        message: "Embedding model:",
+        default: prefs.embeddingModel,
+      },
+    ]);
     embeddingModel = embAns.embeddingModel;
   }
 
@@ -83,7 +111,10 @@ async function promptPreferences(
 
 export async function initPreferencesInteractive(): Promise<void> {
   const updates = await promptPreferences();
-  await updatePreferences({ ...updates, initialCheck: true } as Partial<Preferences>);
+  await updatePreferences({
+    ...updates,
+    initialCheck: true,
+  } as Partial<Preferences>);
 }
 
 export async function editPreferences(): Promise<void> {
@@ -91,3 +122,4 @@ export async function editPreferences(): Promise<void> {
   const updates = await promptPreferences(current);
   await updatePreferences(updates);
 }
+
