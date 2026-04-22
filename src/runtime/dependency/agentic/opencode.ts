@@ -1,8 +1,9 @@
 import { spawn, ChildProcess } from "node:child_process";
 import { logger } from "@lib/logger.js";
 import { configService } from "@config/index.js";
-import type { Dependency } from "../dependency.interface.js";
+import type { Dependency } from "@runtime/runtime.interface.js";
 
+// TODO: add bash "agentic" for debugging
 const OPENCODE_BIN = "/usr/sbin/opencode";
 
 export class OpencodeComponent implements Dependency {

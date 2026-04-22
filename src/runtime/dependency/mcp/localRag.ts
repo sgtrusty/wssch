@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { logger } from "@lib/logger.js";
 import { configService } from "@config/index.js";
-import type { Dependency } from "../dependency.interface.js";
+import type { Dependency } from "@runtime/runtime.interface.js";
 
 export interface RagQueryResult {
   chunks: string[];
@@ -41,7 +41,12 @@ export class LocalRagClient implements Dependency {
   }
 
   async isAvailable(): Promise<boolean> {
-    const mcpBin = join("/home/user/cli", "node_modules", ".bin", "mcp-local-rag");
+    const mcpBin = join(
+      "/home/user/cli",
+      "node_modules",
+      ".bin",
+      "mcp-local-rag",
+    );
     return existsSync(mcpBin);
   }
 

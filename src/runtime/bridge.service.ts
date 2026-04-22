@@ -1,5 +1,5 @@
 import { configService } from "@config/index.js";
-import { Dependency } from "./dependency/dependency.interface.js";
+import type { Dependency } from "@runtime/runtime.interface.js";
 import { createMcpLocalAgentDependency } from "./dependency/mcp/localAgent.js";
 import { createRtkDependency } from "./dependency/optimizer/rtk.js";
 import { createOllamaProxyDependency } from "./dependency/proxy/ollamaProxy.js";

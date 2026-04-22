@@ -1,6 +1,6 @@
 import { logger } from "@lib/logger.js";
-import { bridgeService } from "../bridge.service.js";
-import { Dependency } from "./dependency.interface.js";
+import { bridgeService } from "./bridge.service.js";
+import { Dependency } from "@runtime/runtime.interface.js";
 
 export class DepsInstaller {
   private readonly deps: Dependency[] = [];
@@ -69,4 +69,3 @@ export class DepsInstaller {
 export function createDepsInstaller(): DepsInstaller {
   return new DepsInstaller();
 }
-

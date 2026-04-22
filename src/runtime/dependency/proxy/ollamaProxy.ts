@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { configService } from "@config/index.js";
-import { Dependency } from "../dependency.interface.js";
+import type { Dependency } from "@runtime/runtime.interface.js";
 
 export class OllamaProxyDependency implements Dependency {
   readonly name = "Ollama";
@@ -36,4 +36,3 @@ export class OllamaProxyDependency implements Dependency {
 export function createOllamaProxyDependency(): OllamaProxyDependency {
   return new OllamaProxyDependency();
 }
-

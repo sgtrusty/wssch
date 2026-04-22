@@ -2,14 +2,13 @@ import { copyFile, chmod, rm, mkdir, rename } from "node:fs/promises";
 import { access, constants } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { dirname, join } from "node:path";
+import { logger } from "@lib/logger.js";
 
 export async function safeInstallBin(
   downloadedPath: string,
   destPath: string,
-  mode: number = 0o755
+  mode: number = 0o755,
 ): Promise<void> {
-  const { rename } = await import("node:fs/promises");
-
   const destDir = dirname(destPath);
   await mkdir(destDir, { recursive: true });
 
@@ -39,11 +38,8 @@ export async function isExecutable(path: string): Promise<boolean> {
 export async function downloadUrl(
   url: string,
   destPath: string,
-  progressMsg?: string
+  progressMsg?: string,
 ): Promise<void> {
-  const { spawn } = await import("node:child_process");
-  const { logger } = await import("../../lib/logger.js");
-
   if (progressMsg) {
     logger.progress("subdep", progressMsg);
   }
@@ -61,7 +57,7 @@ export async function downloadUrl(
 export async function extractTar(
   archivePath: string,
   destDir: string,
-  filename: string
+  filename: string,
 ): Promise<string> {
   const tar = spawn("tar", ["-xzf", archivePath, "-C", destDir]);
   await new Promise<void>((resolve, reject) => {
@@ -76,7 +72,7 @@ export async function extractTar(
 
 export async function extractZip(
   archivePath: string,
-  destDir: string
+  destDir: string,
 ): Promise<void> {
   const unzip = spawn("unzip", ["-o", archivePath, "-d", destDir]);
   await new Promise<void>((resolve, reject) => {
@@ -91,7 +87,7 @@ export async function extractZip(
 export async function moveExtractedBin(
   extractedFolder: string,
   binName: string,
-  destDir: string
+  destDir: string,
 ): Promise<string> {
   const extractedBin = join(extractedFolder, binName);
   const finalBin = join(destDir, binName);
@@ -99,3 +95,4 @@ export async function moveExtractedBin(
   await rm(extractedFolder, { force: true, recursive: true });
   return finalBin;
 }
+

@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { configService } from "@config/index.js";
-import { Dependency } from "../dependency.interface.js";
+import type { Dependency } from "@runtime/runtime.interface.js";
 
 interface OpencodeJson {
   mcp?: Record<string, unknown>;
@@ -18,6 +18,8 @@ export class McpLocalAgentDependency implements Dependency {
   async isAvailable(): Promise<boolean> {
     const paths = configService.paths;
     const opencodeJsonPath = join(paths.wssOpencodeConfigDir, "opencode.json");
+
+    // TODO: add shared logic for localAgent/localRag (for using this npm lib) to have preinstalled bin somwhere
 
     if (!existsSync(opencodeJsonPath)) {
       return false;
@@ -72,4 +74,3 @@ export class McpLocalAgentDependency implements Dependency {
 export function createMcpLocalAgentDependency(): McpLocalAgentDependency {
   return new McpLocalAgentDependency();
 }
-
