@@ -8,6 +8,7 @@ export interface DepRef {
 export interface Dependency {
   readonly name: string;
   readonly binPath: string;
+  readonly suggestedPrefs?: Record<string, string>;
   isAvailable(): Promise<boolean>;
   install(): Promise<void>;
   postInstall?(): Promise<void>;

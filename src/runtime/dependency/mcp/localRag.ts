@@ -30,6 +30,7 @@ export interface LocalRagConfig {
 export class LocalRagClient implements Dependency {
   readonly name = "Shinpr MCP LocalRag";
   readonly binPath: string;
+  readonly suggestedPrefs = { embeddingModel: "all-minilm:l6-v2" };
   private process: ChildProcess | null = null;
   private config: LocalRagConfig;
   private ollama: Dependency;

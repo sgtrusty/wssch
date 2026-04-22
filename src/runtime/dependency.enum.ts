@@ -78,14 +78,12 @@ export const MCP_OPTIONS: DepOption<McpItem>[] = [
     name: "localRag",
     description: "Local RAG",
     type: DepType.mcp,
-    prefs: ["embeddingModel"],
   },
   {
     id: McpItem.MCP_LUMEN,
     name: "lumen",
     description: "Lumen semantic search",
     type: DepType.mcp,
-    prefs: ["embeddingModel"],
   },
 ];
 

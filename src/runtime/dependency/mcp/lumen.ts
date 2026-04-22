@@ -1,19 +1,17 @@
-import { spawn, ChildProcess } from "node:child_process";
+import { ChildProcess } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { mkdir } from "node:fs/promises";
 import { configService } from "@config/index.js";
-import { logger } from "@lib/logger.js";
 import { installerService } from "@runtime/installer/installer.service.js";
 import type { Dependency, DepRef } from "@runtime/runtime.interface.js";
 import type { OpencodeJson } from "./mcp.interface.js";
-import { getPreferences } from "@db/pref.service.js";
 import { ProxyItem, DepType } from "@runtime/dependency.enum.js";
 
 export class LumenMcpDependency implements Dependency {
   readonly name = "Lumen MCP";
   readonly binPath: string;
-  private process: ChildProcess | null = null;
+  readonly suggestedPrefs = { embeddingModel: "ordis/jina-embeddings-v2-base-code" };
   private lumenDataDir: string;
 
   constructor() {
@@ -88,4 +86,3 @@ export class LumenMcpDependency implements Dependency {
 export function createLumenMcpDependency(): LumenMcpDependency {
   return new LumenMcpDependency();
 }
-

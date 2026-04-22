@@ -21,7 +21,7 @@ async function promptPreferences(
     toolkit: "bun",
     agentic: "opencode",
     ollamaUrl: "http://localhost:11434",
-    embeddingModel: "Xenova/all-MiniLM-L6-v2",
+    embeddingModel: "all-minilm:l6-v2",
   };
 
   const answers = await inquirer.prompt([
@@ -69,9 +69,14 @@ async function promptPreferences(
 
   const mcp = MCP_OPTIONS.find((o) => o.name === answers.preferredMcpServer);
   const mcpClass = mcp ? MCP_DEP_CLASSES[mcp.name] : undefined;
-  const preDeps = mcpClass?.prototype.preDeps?.call({}) || [];
+  const mcpInstance = mcpClass ? new mcpClass() : undefined;
+  const preDeps = mcpInstance?.preDeps?.() || [];
   const preDepPrefs = getPreDepPrefs(preDeps);
-  const neededPrefs = new Set([...(mcp?.prefs || []), ...preDepPrefs]);
+  const suggestedPrefs = mcpInstance?.suggestedPrefs;
+  const neededPrefs = new Set([
+    ...(suggestedPrefs ? Object.keys(suggestedPrefs) : []),
+    ...preDepPrefs,
+  ]);
 
   let ollamaUrl = prefs.ollamaUrl;
   let embeddingModel = prefs.embeddingModel;
@@ -93,7 +98,7 @@ async function promptPreferences(
         type: "input",
         name: "embeddingModel",
         message: "Embedding model:",
-        default: prefs.embeddingModel,
+        default: suggestedPrefs?.embeddingModel ?? prefs.embeddingModel,
       },
     ]);
     embeddingModel = embAns.embeddingModel;
@@ -122,4 +127,3 @@ export async function editPreferences(): Promise<void> {
   const updates = await promptPreferences(current);
   await updatePreferences(updates);
 }
-

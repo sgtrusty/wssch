@@ -26,7 +26,7 @@ const DEFAULT_PREFERENCES: Omit<
   toolkit: "bun",
   agentic: "opencode",
   ollamaUrl: "http://localhost:11434",
-  embeddingModel: "Xenova/all-MiniLM-L6-v2",
+  embeddingModel: "all-minilm:l6-v2",
 };
 
 function getDbPath(): string {
@@ -239,4 +239,3 @@ export async function isInitialCheckComplete(): Promise<boolean> {
     return false;
   }
 }
-
