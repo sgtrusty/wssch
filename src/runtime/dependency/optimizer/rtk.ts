@@ -2,31 +2,21 @@ import { spawn, ChildProcess } from "node:child_process";
 import { mkdir, access, constants, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { logger } from "../../../lib/logger.js";
-import type { Config } from "../../../lib/config.js";
-import type { Dependency } from "../base.js";
+import { logger } from "@lib/logger.js";
+import { configService } from "@config/index.js";
+import type { Dependency } from "@runtime/runtime.interface.js";
 import {
   safeInstallBin,
   downloadUrl,
   extractTar,
   isExecutable,
-} from "../installUtil.js";
+  detectOs,
+  detectArch,
+  getLatestVersion,
+} from "@runtime/dependency.util.js";
 
 const REPO = "rtk-ai/rtk";
-const DOWNLOAD_HOST = "github.com";
 const VERSION_FALLBACK = "v0.37.1";
-
-function detectOs(): "linux" | "darwin" {
-  return process.platform === "darwin" ? "darwin" : "linux";
-}
-
-function detectArch(): "x86_64" | "aarch64" | string {
-  const arch = process.arch as string;
-  if (arch === "x64" || arch === "amd64" || arch === "ia32") return "x86_64";
-  if (arch === "arm64" || arch === "aarch64" || arch === "arm")
-    return "aarch64";
-  return arch;
-}
 
 function getTarget(os: string, arch: string): string {
   if (os === "linux") {
@@ -40,33 +30,38 @@ function getTarget(os: string, arch: string): string {
   throw new Error(`Unsupported OS: ${os}`);
 }
 
-async function getLatestVersion(): Promise<string> {
-  try {
-    const proc = spawn(
-      "curl",
-      ["-fsSL", `https://api.${DOWNLOAD_HOST}/repos/${REPO}/releases/latest`],
-      { stdio: "pipe" },
-    );
-    const output = await new Promise<string>((resolve, reject) => {
-      let data = "";
-      proc.stdout?.on("data", (d) => {
-        data += d;
-      });
-      proc.on("close", (code) => (code === 0 ? resolve(data) : reject()));
-      proc.on("error", reject);
-    });
-    const match = output.match(/"tag_name":\s*"v?(\d+\.\d+\.\d+)"/);
-    if (match) return `v${match[1]}`;
-  } catch {}
-  return VERSION_FALLBACK;
-}
-
 export class RtkDependency implements Dependency {
   readonly name = "RTK (optimizer)";
   readonly binPath: string;
+  private client: RtkClient | null = null;
+  private _isRunning = false;
 
-  constructor(private readonly config: Config) {
-    this.binPath = `${config.wssBinDir}/rtk`;
+  constructor() {
+    this.binPath = `${configService.paths.wssBinDir}/rtk`;
+  }
+
+  async start(): Promise<void> {
+    this.client = new RtkClient(this.binPath);
+    try {
+      const available = await this.client.check();
+      if (available) {
+        this._isRunning = true;
+        logger.check("component", "RTK ready");
+      } else {
+        logger.warn("component", "RTK not available");
+      }
+    } catch (err) {
+      logger.warn("component", `RTK check failed: ${err}`);
+    }
+  }
+
+  async stop(): Promise<void> {
+    this._isRunning = false;
+    this.client = null;
+  }
+
+  isRunning(): boolean {
+    return this._isRunning;
   }
 
   async isAvailable(): Promise<boolean> {
@@ -79,6 +74,8 @@ export class RtkDependency implements Dependency {
   }
 
   async install(): Promise<void> {
+    const paths = configService.paths;
+
     if (await this.isAvailable()) {
       logger.info("subdep", "RTK already installed");
       return;
@@ -89,11 +86,11 @@ export class RtkDependency implements Dependency {
     const os = detectOs();
     const arch = detectArch();
     const target = getTarget(os, arch);
-    const version = await getLatestVersion();
+    const version = await getLatestVersion(REPO, VERSION_FALLBACK);
 
-    await mkdir(this.config.wssBinDir, { recursive: true });
+    await mkdir(paths.wssBinDir, { recursive: true });
 
-    const url = `https://${DOWNLOAD_HOST}/${REPO}/releases/download/${version}/rtk-${target}.tar.gz`;
+    const url = `https://github.com/${REPO}/releases/download/${version}/rtk-${target}.tar.gz`;
     logger.progress("subdep", `Downloading RTK from ${url}`);
 
     const tempDir = tmpdir();
@@ -112,7 +109,7 @@ export class RtkDependency implements Dependency {
       throw new Error("RTK binary not executable after installation");
     }
 
-    logger.check("subdep", `RTK installed to ${this.config.wssBinDir}`);
+    logger.check("subdep", `RTK installed to ${paths.wssBinDir}`);
     await rm(archive, { force: true });
   }
 
@@ -208,10 +205,11 @@ export class RtkClient {
   }
 }
 
-export function createRtkDependency(config: Config): RtkDependency {
-  return new RtkDependency(config);
+export function createRtkDependency(): RtkDependency {
+  return new RtkDependency();
 }
 
-export function createRtkClient(config: Config): RtkClient {
-  return new RtkClient(`${config.wssBinDir}/rtk`);
+export function createRtkClient(): RtkClient {
+  return new RtkClient(`${configService.paths.wssBinDir}/rtk`);
 }
+

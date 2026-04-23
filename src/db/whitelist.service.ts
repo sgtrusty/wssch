@@ -1,14 +1,15 @@
 import { spawn } from "node:child_process";
-import { mkdir, access, constants } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import { logger } from "../lib/logger.js";
-import type { Config } from "../lib/config.js";
+import { logger } from "@lib/logger.js";
+import { configService } from "@config/index.js";
 
 const DB_NAME = "whitelist.db";
 
-export async function initWhitelist(config: Config): Promise<void> {
-  const dbPath = join(config.wssConfigDir, DB_NAME);
-  await mkdir(config.wssConfigDir, { recursive: true });
+export async function initWhitelist(): Promise<void> {
+  const paths = configService.paths;
+  const dbPath = join(paths.wssConfigDir, DB_NAME);
+  await mkdir(paths.wssConfigDir, { recursive: true });
 
   const initSql = `
     CREATE TABLE IF NOT EXISTS whitelist (
@@ -20,21 +21,22 @@ export async function initWhitelist(config: Config): Promise<void> {
 
   try {
     const proc = spawn("sqlite3", [dbPath, initSql], { stdio: "ignore" });
-    await new Promise<void>((resolve, reject) => {
+    await new Promise<void>((resolve) => {
       proc.on("close", (code) => code === 0 ? resolve() : resolve());
       proc.on("error", () => resolve());
     });
-  } catch { }
+  } catch {}
 }
 
-export async function isWhitelisted(config: Config, targetPath: string): Promise<boolean> {
-  const dbPath = join(config.wssConfigDir, DB_NAME);
+export async function isWhitelisted(targetPath: string): Promise<boolean> {
+  const paths = configService.paths;
+  const dbPath = join(paths.wssConfigDir, DB_NAME);
   const now = Math.floor(Date.now() / 1000);
 
   try {
     const proc = spawn("sqlite3", [
       dbPath,
-      `SELECT 1 FROM whitelist WHERE path = '${targetPath}' AND expires_at > ${now} LIMIT 1;`
+      `SELECT 1 FROM whitelist WHERE path = '${targetPath}' AND expires_at > ${now} LIMIT 1;`,
     ], { stdio: "pipe" });
 
     const output = await new Promise<string>((resolve) => {
@@ -49,10 +51,12 @@ export async function isWhitelisted(config: Config, targetPath: string): Promise
   }
 }
 
-export async function addToWhitelist(config: Config, targetPath: string): Promise<void> {
-  const dbPath = join(config.wssConfigDir, DB_NAME);
+export async function addToWhitelist(targetPath: string): Promise<void> {
+  const paths = configService.paths;
+  const args = configService.args;
+  const dbPath = join(paths.wssConfigDir, DB_NAME);
   const now = Math.floor(Date.now() / 1000);
-  const expiry = now + (config.whitelistHours * 3600);
+  const expiry = now + (args.whitelistHours * 3600);
 
   try {
     const proc = spawn("sqlite3", [dbPath, `
@@ -64,33 +68,31 @@ export async function addToWhitelist(config: Config, targetPath: string): Promis
       proc.on("close", () => resolve());
       proc.on("error", () => resolve());
     });
-  } catch { }
+  } catch {}
 }
 
-export async function verifyDirectory(config: Config): Promise<boolean> {
-  const { targetDir } = config;
+export async function verifyDirectory(): Promise<boolean> {
+  const args = configService.args;
 
-  if (config.force) {
+  if (args.force) {
     logger.warn("hook", "FORCE enabled, skipping verification");
     return true;
   }
 
-  if (await isWhitelisted(config, targetDir)) {
-    logger.check("hook", `Directory already whitelisted: ${targetDir}`);
+  if (await isWhitelisted(args.targetDir)) {
+    logger.check("hook", `Directory already whitelisted: ${args.targetDir}`);
     return true;
   }
 
-  logger.info("hook", `Verifying directory: ${targetDir}`);
+  logger.info("hook", `Verifying directory: ${args.targetDir}`);
   
-  // In non-interactive mode, reject
   if (!process.stdin.isTTY) {
     logger.fail("hook", "Directory not verified (non-interactive)");
     return false;
   }
 
-  // For now, auto-whitelist in dev mode. In production, would use whiptail
   logger.info("hook", "Auto-whitelisting directory (dev mode)");
-  await addToWhitelist(config, targetDir);
-  logger.check("hook", `Directory whitelisted: ${targetDir}`);
+  await addToWhitelist(args.targetDir);
+  logger.check("hook", `Directory whitelisted: ${args.targetDir}`);
   return true;
 }

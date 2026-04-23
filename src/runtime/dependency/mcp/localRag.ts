@@ -1,10 +1,24 @@
 import { spawn, ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { logger } from "../../../lib/logger.js";
-import type { Config } from "../../../lib/config.js";
-import type { RagQueryResult, RagIngestResult } from "../../../core/types.js";
-import type { RuntimeComponent } from "../base.js";
+import { access, constants } from "node:fs/promises";
+import { logger } from "@lib/logger.js";
+import { installerService } from "@runtime/installer/installer.service.js";
+import { configService } from "@config/index.js";
+import type { Dependency, DepRef } from "@runtime/runtime.interface.js";
+import { getPreferences } from "@db/pref.service.js";
+import { DepType, ProxyItem } from "@runtime/dependency.enum.js";
+import { createOllamaProxyDependency } from "../proxy/ollamaProxy.js";
+
+export interface RagQueryResult {
+  chunks: string[];
+  sources: string[];
+}
+
+export interface RagIngestResult {
+  fileCount: number;
+  chunkCount: number;
+}
 
 export interface LocalRagConfig {
   dbPath: string;
@@ -13,35 +27,62 @@ export interface LocalRagConfig {
   embeddingModel?: string;
 }
 
-export class LocalRagClient implements RuntimeComponent {
-  readonly name = "MCP (local-RAG)";
+export class LocalRagClient implements Dependency {
+  readonly name = "Shinpr MCP LocalRag";
+  readonly binPath: string;
+  readonly suggestedPrefs = { embeddingModel: "all-minilm:l6-v2" };
   private process: ChildProcess | null = null;
   private config: LocalRagConfig;
+  private ollama: Dependency;
 
-  constructor(config: Config) {
+  constructor() {
+    const paths = configService.paths;
+    this.binPath = join(paths.wssBinDir, "mcp-local-rag");
     this.config = {
-      dbPath: join(config.wssConfigDir, "rag.db"),
-      baseUrl: config.ollamaUrl,
-      embeddingProvider: "ollama",
-      embeddingModel: config.embedModel,
+      dbPath: join(paths.wssConfigDir, "rag.db"),
     };
+    this.ollama = createOllamaProxyDependency();
+  }
+
+  async initFromPrefs(): Promise<void> {
+    if (this.ollama.initFromPrefs) {
+      await this.ollama.initFromPrefs();
+    }
+    const prefs = await getPreferences();
+    this.config.baseUrl = prefs.ollamaUrl;
+    this.config.embeddingProvider = "ollama";
+    this.config.embeddingModel = prefs.embeddingModel;
+  }
+
+  async isAvailable(): Promise<boolean> {
+    try {
+      await access(this.binPath, constants.X_OK);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async install(): Promise<void> {
+    const strategy = installerService.npx({
+      packageName: "@shinpr/mcp-local-rag",
+      binName: "mcp-local-rag",
+      version: "0.1.3.0",
+    });
+    await installerService.install(strategy, this.binPath);
   }
 
   async start(): Promise<void> {
     if (this.isRunning()) return;
-    
+
     logger.progress(this.name, "Starting MCP (local-RAG)...");
 
-    const cliDir = "/home/user/cli";
-    const mcpBin = join(cliDir, "node_modules", ".bin", "mcp-local-rag");
-
-    if (!existsSync(mcpBin)) {
-      logger.warn(this.name, "mcp-local-rag not found in node_modules");
+    if (!existsSync(this.binPath)) {
+      logger.warn(this.name, "mcp-local-rag not found");
       return;
     }
 
-    this.process = spawn(mcpBin, [], {
-      cwd: "/home/user/project",
+    this.process = spawn(this.binPath, [], {
       stdio: "ignore",
       env: {
         ...process.env,
@@ -84,7 +125,7 @@ export class LocalRagClient implements RuntimeComponent {
   }
 
   async ingest(directories: string[]): Promise<RagIngestResult> {
-    const args = ["-y", "mcp-local-rag", "ingest", ...directories];
+    const args = ["ingest", ...directories];
     const result = await this.runCommand(args);
 
     if (result.code !== 0) {
@@ -98,7 +139,7 @@ export class LocalRagClient implements RuntimeComponent {
   }
 
   async query(query: string, topK: number = 5): Promise<RagQueryResult> {
-    const args = ["-y", "mcp-local-rag", "query", "--top-k", String(topK), query];
+    const args = ["query", "--top-k", String(topK), query];
     const result = await this.runCommand(args);
 
     if (result.code !== 0) {
@@ -114,7 +155,7 @@ export class LocalRagClient implements RuntimeComponent {
   }
 
   async status(): Promise<{ documents: number; chunks: number }> {
-    const args = ["-y", "mcp-local-rag", "status"];
+    const args = ["status"];
     const result = await this.runCommand(args);
 
     if (result.code !== 0) {
@@ -130,14 +171,20 @@ export class LocalRagClient implements RuntimeComponent {
     };
   }
 
-  private runCommand(args: string[]): Promise<{ code: number; stdout: string; stderr: string }> {
+  private runCommand(
+    args: string[],
+  ): Promise<{ code: number; stdout: string; stderr: string }> {
     return new Promise((resolve) => {
-      const proc = spawn("/usr/bin/npx", args, { stdio: "pipe" });
+      const proc = spawn(this.binPath, args, { stdio: "pipe" });
       let stdout = "";
       let stderr = "";
 
-      proc.stdout?.on("data", (d) => { stdout += d; });
-      proc.stderr?.on("data", (d) => { stderr += d; });
+      proc.stdout?.on("data", (d) => {
+        stdout += d;
+      });
+      proc.stderr?.on("data", (d) => {
+        stderr += d;
+      });
 
       proc.on("close", (code) => {
         resolve({ code: code || 0, stdout, stderr });
@@ -148,8 +195,12 @@ export class LocalRagClient implements RuntimeComponent {
       });
     });
   }
+
+  preDeps(): DepRef[] {
+    return [{ type: DepType.proxy, item: ProxyItem.PROXY_OLLAMA }];
+  }
 }
 
-export function createLocalRagClient(config: Config): LocalRagClient {
-  return new LocalRagClient(config);
+export function createLocalRagClient(): LocalRagClient {
+  return new LocalRagClient();
 }
