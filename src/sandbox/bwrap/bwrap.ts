@@ -108,6 +108,8 @@ async function buildBwrapOptions(): Promise<string[]> {
     cmdArgs.push("--setenv", "NO_RAG", "true");
   }
 
+  cmdArgs.push("--setenv", "DEBUG", cfg.debug ? "1" : "0");
+
   cmdArgs.push("--setenv", "WSS_IN_SANDBOX", "true");
 
   cmdArgs.push("--setenv", "TERM", process.env.TERM || SANDBOX_BINDINGS.term);

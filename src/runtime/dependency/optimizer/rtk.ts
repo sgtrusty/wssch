@@ -10,23 +10,13 @@ import {
   downloadUrl,
   extractTar,
   isExecutable,
+  detectOs,
+  detectArch,
+  getLatestVersion,
 } from "@runtime/dependency.util.js";
 
 const REPO = "rtk-ai/rtk";
-const DOWNLOAD_HOST = "github.com";
 const VERSION_FALLBACK = "v0.37.1";
-
-function detectOs(): "linux" | "darwin" {
-  return process.platform === "darwin" ? "darwin" : "linux";
-}
-
-function detectArch(): "x86_64" | "aarch64" | string {
-  const arch = process.arch as string;
-  if (arch === "x64" || arch === "amd64" || arch === "ia32") return "x86_64";
-  if (arch === "arm64" || arch === "aarch64" || arch === "arm")
-    return "aarch64";
-  return arch;
-}
 
 function getTarget(os: string, arch: string): string {
   if (os === "linux") {
@@ -38,27 +28,6 @@ function getTarget(os: string, arch: string): string {
     return `${arch}-apple-darwin`;
   }
   throw new Error(`Unsupported OS: ${os}`);
-}
-
-async function getLatestVersion(): Promise<string> {
-  try {
-    const proc = spawn(
-      "curl",
-      ["-fsSL", `https://api.${DOWNLOAD_HOST}/repos/${REPO}/releases/latest`],
-      { stdio: "pipe" },
-    );
-    const output = await new Promise<string>((resolve, reject) => {
-      let data = "";
-      proc.stdout?.on("data", (d) => {
-        data += d;
-      });
-      proc.on("close", (code) => (code === 0 ? resolve(data) : reject()));
-      proc.on("error", reject);
-    });
-    const match = output.match(/"tag_name":\s*"v?(\d+\.\d+\.\d+)"/);
-    if (match) return `v${match[1]}`;
-  } catch {}
-  return VERSION_FALLBACK;
 }
 
 export class RtkDependency implements Dependency {
@@ -117,11 +86,11 @@ export class RtkDependency implements Dependency {
     const os = detectOs();
     const arch = detectArch();
     const target = getTarget(os, arch);
-    const version = await getLatestVersion();
+    const version = await getLatestVersion(REPO, VERSION_FALLBACK);
 
     await mkdir(paths.wssBinDir, { recursive: true });
 
-    const url = `https://${DOWNLOAD_HOST}/${REPO}/releases/download/${version}/rtk-${target}.tar.gz`;
+    const url = `https://github.com/${REPO}/releases/download/${version}/rtk-${target}.tar.gz`;
     logger.progress("subdep", `Downloading RTK from ${url}`);
 
     const tempDir = tmpdir();

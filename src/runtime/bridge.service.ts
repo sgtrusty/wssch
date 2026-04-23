@@ -5,6 +5,7 @@ import { createRtkDependency } from "./dependency/optimizer/rtk.js";
 import { createOllamaProxyDependency } from "./dependency/proxy/ollamaProxy.js";
 import { createBunDependency } from "./dependency/toolkit/bun.js";
 import { createOpencodeComponent } from "./dependency/agentic/opencode.js";
+import { createForgecodeDependency } from "./dependency/agentic/forgecode.js";
 import {
   DepType,
   ToolkitItem,
@@ -39,6 +40,7 @@ const MCP_DEPS: Record<McpItem, () => Dependency> = {
 
 const AGENTIC_DEPS: Record<AgenticItem, () => Dependency> = {
   [AgenticItem.AGENTIC_OPENCODE]: createOpencodeComponent,
+  [AgenticItem.AGENTIC_FORGECODE]: createForgecodeDependency,
 };
 
 export class BridgeService {

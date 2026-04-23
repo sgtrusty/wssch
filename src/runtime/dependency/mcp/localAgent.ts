@@ -1,10 +1,11 @@
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { mkdir } from "node:fs/promises";
 import { configService } from "@config/index.js";
 import { installerService } from "@runtime/installer/installer.service.js";
 import type { Dependency } from "@runtime/runtime.interface.js";
-import type { OpencodeJson } from "./mcp.interface.js";
+import { checkMcpEnabled, writeMcpConfig, getActiveAgent } from "./mcp.util.js";
+
+const SERVER_NAME = "mcp-local-agent";
 
 export class McpLocalAgentDependency implements Dependency {
   readonly name = "Shinpr MCP LocalDB";
@@ -15,25 +16,14 @@ export class McpLocalAgentDependency implements Dependency {
   }
 
   async isAvailable(): Promise<boolean> {
-    if (!existsSync(this.binPath)) return false;
-
-    const paths = configService.paths;
-    const opencodeJsonPath = join(paths.wssOpencodeConfigDir, "opencode.json");
-
-    if (!existsSync(opencodeJsonPath)) {
-      return false;
-    }
-
-    try {
-      const content = readFileSync(opencodeJsonPath, "utf-8");
-      const opencodeJson = JSON.parse(content);
-      return !!(opencodeJson.mcp && opencodeJson.mcp["mcp-local-agent"]);
-    } catch {
-      return false;
-    }
+    const agent = await getActiveAgent();
+    return checkMcpEnabled(agent, SERVER_NAME);
   }
 
   async install(): Promise<void> {
+    const agent = await getActiveAgent();
+    const paths = configService.paths;
+
     const strategy = installerService.esbuild({
       repoUrl: "https://github.com/shinpr/mcp-local-rag",
       binName: "mcp-local-rag",
@@ -49,37 +39,18 @@ export class McpLocalAgentDependency implements Dependency {
     });
     await installerService.install(strategy, this.binPath);
 
-    const paths = configService.paths;
-    const opencodeJsonPath = join(paths.wssOpencodeConfigDir, "opencode.json");
+    const mcpShinprDir = join(paths.wssDataDir, "mcp/shinpr");
+    await mkdir(mcpShinprDir, { recursive: true });
 
-    let opencodeJson: OpencodeJson = {};
-
-    if (existsSync(opencodeJsonPath)) {
-      try {
-        opencodeJson = JSON.parse(readFileSync(opencodeJsonPath, "utf-8"));
-      } catch {}
-    }
-
-    if (!opencodeJson.mcp) {
-      opencodeJson.mcp = {};
-    }
-
-    if (!opencodeJson.mcp["shinpr-mcp-localdb"]) {
-      const mcpShinprDir = join(paths.wssDataDir, "mcp/shinpr");
-      await mkdir(mcpShinprDir, { recursive: true });
-      opencodeJson.mcp["shinpr-mcp-localdb"] = {
-        type: "local",
-        command: [this.binPath],
-        enabled: true,
-        environment: {
-          BASE_DIR: paths.wssDataDir,
-          DB_PATH: join(mcpShinprDir, "rag.db"),
-          CACHE_DIR: join(mcpShinprDir, "models"),
-        },
-      };
-    }
-
-    writeFileSync(opencodeJsonPath, JSON.stringify(opencodeJson, null, 2));
+    writeMcpConfig(agent, SERVER_NAME, {
+      command: this.binPath,
+      args: agent === "forgecode" ? ["stdio"] : undefined,
+      env: {
+        BASE_DIR: paths.wssDataDir,
+        DB_PATH: join(mcpShinprDir, "rag.db"),
+        CACHE_DIR: join(mcpShinprDir, "models"),
+      },
+    });
   }
 }
 

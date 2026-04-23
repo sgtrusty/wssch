@@ -2,7 +2,74 @@ import { copyFile, chmod, rm, mkdir, rename } from "node:fs/promises";
 import { access, constants } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { dirname, join } from "node:path";
+import { tmpdir } from "node:os";
 import { logger } from "@lib/logger.js";
+
+export function detectOs(): "linux" | "darwin" | "windows" {
+  const platform = process.platform;
+  if (platform === "darwin") return "darwin";
+  if (platform === "win32") return "windows";
+  return "linux";
+}
+
+export function detectArch(): "x86_64" | "aarch64" {
+  const arch = process.arch as string;
+  if (arch === "x64" || arch === "amd64" || arch === "ia32") return "x86_64";
+  if (arch === "arm64" || arch === "aarch64" || arch === "arm") return "aarch64";
+  throw new Error(`Unsupported architecture: ${arch}`);
+}
+
+export async function getLibcType(): Promise<"gnu" | "musl"> {
+  try {
+    const proc = spawn("ldd", ["--version"], { stdio: "pipe" });
+    const output = await new Promise<string>((resolve, reject) => {
+      let data = "";
+      proc.stdout?.on("data", (d) => { data += d; });
+      proc.on("close", () => resolve(data));
+      proc.on("error", reject);
+    });
+
+    if (output.toLowerCase().includes("musl")) return "musl";
+
+    const match = output.match(/(\d+)\.(\d+)/);
+    if (match) {
+      const major = parseInt(match[1]);
+      const minor = parseInt(match[2]);
+      if (major > 2 || (major === 2 && minor >= 39)) return "gnu";
+    }
+  } catch {}
+  return "gnu";
+}
+
+export async function getForgeTarget(): Promise<string> {
+  const os = detectOs();
+  const arch = detectArch();
+
+  if (os === "windows") return `${arch}-pc-windows-msvc`;
+  if (os === "darwin") return `${arch}-apple-darwin`;
+
+  const libc = await getLibcType();
+  return `${arch}-unknown-linux-${libc}`;
+}
+
+export async function getLatestVersion(repo: string, fallback: string): Promise<string> {
+  try {
+    const proc = spawn(
+      "curl",
+      ["-fsSL", `https://api.github.com/repos/${repo}/releases/latest`],
+      { stdio: "pipe" },
+    );
+    const output = await new Promise<string>((resolve, reject) => {
+      let data = "";
+      proc.stdout?.on("data", (d) => { data += d; });
+      proc.on("close", (code) => (code === 0 ? resolve(data) : reject()));
+      proc.on("error", reject);
+    });
+    const match = output.match(/"tag_name":\s*"v?([^"]+)"/);
+    if (match) return `v${match[1]}`;
+  } catch {}
+  return fallback;
+}
 
 export async function safeInstallBin(
   downloadedPath: string,

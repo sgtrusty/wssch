@@ -1,6 +1,8 @@
 import { logger } from "@lib/logger.js";
 import { bridgeService } from "@runtime/bridge.service.js";
 import { Dependency } from "@runtime/runtime.interface.js";
+import { spawn } from "node:child_process";
+import { configService } from "@config/config.service.js";
 
 export class Orchestrator {
   private components: Dependency[] = [];
@@ -9,6 +11,18 @@ export class Orchestrator {
 
   async start(): Promise<void> {
     logger.info("orchestrator", "Starting orchestrator...");
+
+    if (configService.args.debug) {
+      logger.info("orchestrator", "Debug mode: spawning bash...");
+      return new Promise((resolve, reject) => {
+        const proc = spawn("bash", { cwd: configService.args.targetDir, stdio: "inherit" });
+        proc.on("close", (code) => {
+          logger.info("orchestrator", `bash exited with code ${code}`);
+          resolve();
+        });
+        proc.on("error", reject);
+      });
+    }
 
     this.components = await bridgeService.getDepsFromPreferences();
 

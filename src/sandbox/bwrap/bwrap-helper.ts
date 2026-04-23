@@ -210,9 +210,15 @@ const ALLOWED_BINARIES = new Set([
   "commitlint",
   "husky",
   "lint-staged",
+  "tree",
   "wssch",
   "sqlite3",
   "opencode",
+  "fzf",
+  "bat",
+  "fd",
+  "npm",
+  "node",
 ]);
 
 const SYSTEM_PATHS = [
@@ -283,8 +289,7 @@ export async function buildUsrBinArgs(): Promise<string[]> {
     try {
       await access(p, constants.F_OK);
       args.push("--ro-bind-try", p, p);
-    } catch {
-    }
+    } catch {}
   }
 
   return args;
@@ -321,7 +326,7 @@ export async function mountUsrBinRecursive(
       } else if (st.isFile()) {
         bwrapArgs.push("--ro-bind", srcPath, targetPath);
       }
-    } catch {
-    }
+    } catch {}
   }
 }
+

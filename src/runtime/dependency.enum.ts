@@ -26,6 +26,7 @@ export enum McpItem {
 
 export enum AgenticItem {
   AGENTIC_OPENCODE = 0,
+  AGENTIC_FORGECODE = 1,
 }
 
 export type PrefKey = "ollamaUrl" | "embeddingModel";
@@ -92,6 +93,12 @@ export const AGENTIC_OPTIONS: DepOption<AgenticItem>[] = [
     id: AgenticItem.AGENTIC_OPENCODE,
     name: "opencode",
     description: "OpenCode agent",
+    type: DepType.agentic,
+  },
+  {
+    id: AgenticItem.AGENTIC_FORGECODE,
+    name: "forgecode",
+    description: "ForgeCode agent",
     type: DepType.agentic,
   },
 ];

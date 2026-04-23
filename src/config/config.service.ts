@@ -157,6 +157,7 @@ class ConfigService {
       noRtk: process.env.NO_RTK === "true",
       noRag: process.env.NO_RAG === "true",
       noOllama: process.env.NO_OLLAMA === "true",
+      debug: process.env.DEBUG === "1",
     };
   }
 

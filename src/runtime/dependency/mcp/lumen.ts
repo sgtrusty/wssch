@@ -1,12 +1,14 @@
 import { ChildProcess } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { mkdir } from "node:fs/promises";
 import { configService } from "@config/index.js";
 import { installerService } from "@runtime/installer/installer.service.js";
 import type { Dependency, DepRef } from "@runtime/runtime.interface.js";
-import type { OpencodeJson } from "./mcp.interface.js";
 import { ProxyItem, DepType } from "@runtime/dependency.enum.js";
+import { checkMcpEnabled, writeMcpConfig, getActiveAgent } from "./mcp.util.js";
+
+const SERVER_NAME = "lumen";
 
 export class LumenMcpDependency implements Dependency {
   readonly name = "Lumen MCP";
@@ -25,25 +27,13 @@ export class LumenMcpDependency implements Dependency {
   }
 
   async isAvailable(): Promise<boolean> {
-    const paths = configService.paths;
-    const opencodeJsonPath = join(paths.wssOpencodeConfigDir, "opencode.json");
-
-    if (!existsSync(opencodeJsonPath)) {
-      return false;
-    }
-
-    try {
-      const content = readFileSync(opencodeJsonPath, "utf-8");
-      const opencodeJson = JSON.parse(content);
-      return !!(opencodeJson.mcp && opencodeJson.mcp["lumen"]);
-    } catch {
-      return false;
-    }
+    const agent = await getActiveAgent();
+    return checkMcpEnabled(agent, SERVER_NAME);
   }
 
   async install(): Promise<void> {
+    const agent = await getActiveAgent();
     const paths = configService.paths;
-    const opencodeJsonPath = join(paths.wssOpencodeConfigDir, "opencode.json");
 
     const strategy = installerService.direct(
       "https://github.com/ory/lumen/releases/download/v0.0.36/lumen-0.0.36-linux-amd64",
@@ -52,30 +42,15 @@ export class LumenMcpDependency implements Dependency {
     );
     await installerService.install(strategy, this.binPath);
 
-    let opencodeJson: OpencodeJson = {};
-    if (existsSync(opencodeJsonPath)) {
-      try {
-        opencodeJson = JSON.parse(readFileSync(opencodeJsonPath, "utf-8"));
-      } catch {}
-    }
+    await mkdir(this.lumenDataDir, { recursive: true });
 
-    if (!opencodeJson.mcp) {
-      opencodeJson.mcp = {};
-    }
-
-    if (!opencodeJson.mcp["lumen"]) {
-      await mkdir(this.lumenDataDir, { recursive: true });
-      opencodeJson.mcp["lumen"] = {
-        type: "local",
-        command: [this.binPath, "stdio"],
-        enabled: true,
-        environment: {
-          XDG_DATA_HOME: this.lumenDataDir,
-        },
-      };
-    }
-
-    writeFileSync(opencodeJsonPath, JSON.stringify(opencodeJson, null, 2));
+    writeMcpConfig(agent, SERVER_NAME, {
+      command: this.binPath,
+      args: ["stdio"],
+      env: {
+        XDG_DATA_HOME: this.lumenDataDir,
+      },
+    });
   }
 
   preDeps(): DepRef[] {

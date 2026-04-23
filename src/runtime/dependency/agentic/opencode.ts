@@ -3,8 +3,7 @@ import { logger } from "@lib/logger.js";
 import { configService } from "@config/index.js";
 import type { Dependency } from "@runtime/runtime.interface.js";
 
-// TODO: add bash "agentic" for debugging
-const OPENCODE_BIN = "/usr/sbin/opencode";
+const OPENCODE_BIN = "opencode";
 
 export class OpencodeComponent implements Dependency {
   readonly name = "OpenCode";

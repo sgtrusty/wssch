@@ -10,6 +10,7 @@ export interface ArgConfig {
   noRtk: boolean;
   noRag: boolean;
   noOllama: boolean;
+  debug: boolean;
 }
 
 export const DEFAULT_ARGS: ArgConfig = {
@@ -22,4 +23,5 @@ export const DEFAULT_ARGS: ArgConfig = {
   noRtk: false,
   noRag: false,
   noOllama: false,
+  debug: false,
 };
