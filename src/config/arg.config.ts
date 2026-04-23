@@ -7,9 +7,6 @@ export interface ArgConfig {
   force: boolean;
   whitelistHours: number;
   rtkBin: string | null;
-  noRtk: boolean;
-  noRag: boolean;
-  noOllama: boolean;
   debug: boolean;
 }
 
@@ -20,8 +17,5 @@ export const DEFAULT_ARGS: ArgConfig = {
   force: false,
   whitelistHours: 24,
   rtkBin: null,
-  noRtk: false,
-  noRag: false,
-  noOllama: false,
   debug: false,
 };

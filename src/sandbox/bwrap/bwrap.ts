@@ -14,7 +14,6 @@ const BWARP_BIN = "/usr/bin/bwrap";
 async function buildBwrapOptions(): Promise<string[]> {
   const cmdArgs: string[] = [];
   const paths = configService.paths;
-  const cfg = configService.args;
 
   cmdArgs.push("--unshare-all");
   cmdArgs.push("--unshare-ipc");
@@ -73,7 +72,7 @@ async function buildBwrapOptions(): Promise<string[]> {
   cmdArgs.push(
     "--bind",
     paths.wssOpencodeConfigDir,
-    SANDBOX_BINDINGS.wssOpencodeConfigDir,
+    SANDBOX_BINDINGS.opencodeConfig,
   );
   cmdArgs.push(
     "--bind",
@@ -96,19 +95,7 @@ async function buildBwrapOptions(): Promise<string[]> {
     SANDBOX_BINDINGS.rtkConfigDir,
   );
 
-  if (!cfg.noRtk) {
-    cmdArgs.push("--setenv", "NO_RTK", "false");
-  } else {
-    cmdArgs.push("--setenv", "NO_RTK", "true");
-  }
-
-  if (!cfg.noOllama) {
-    cmdArgs.push("--setenv", "NO_RAG", "false");
-  } else {
-    cmdArgs.push("--setenv", "NO_RAG", "true");
-  }
-
-  cmdArgs.push("--setenv", "DEBUG", cfg.debug ? "1" : "0");
+  cmdArgs.push("--setenv", "DEBUG", args.debug ? "1" : "0");
 
   cmdArgs.push("--setenv", "WSS_IN_SANDBOX", "true");
 

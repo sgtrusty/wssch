@@ -8,18 +8,16 @@ export interface ScaffoldConfig {
   opencodeDir: string;
   wssConfigDir: string;
   wssBinDir: string;
-  noRtk: boolean;
-  noRag: boolean;
 }
 
 export async function scaffold(config: ScaffoldConfig): Promise<void> {
-  const { targetDir, opencodeDir, noRag } = config;
+  const { targetDir, opencodeDir } = config;
 
   if (!existsSync(opencodeDir)) {
     mkdirSync(opencodeDir, { recursive: true });
   }
 
-  scaffoldOpencodeJson(opencodeDir, noRag);
+  scaffoldOpencodeJson(opencodeDir);
 
   const wssDataDir = join(targetDir, ".wssdata");
   if (!existsSync(wssDataDir)) {
@@ -42,7 +40,7 @@ function scaffoldWssdataGitignore(wssDataDir: string): void {
   }
 }
 
-function scaffoldOpencodeJson(opencodeDir: string, noRag: boolean): void {
+function scaffoldOpencodeJson(opencodeDir: string): void {
   const cfg: Record<string, unknown> = {
     $schema: "https://opencode.ai/config.json",
     mcp: {},
@@ -57,4 +55,3 @@ function scaffoldOpencodeJson(opencodeDir: string, noRag: boolean): void {
     throw err;
   }
 }
-

@@ -82,8 +82,6 @@ export async function runOrchestrator(): Promise<void> {
     wssConfigDir: paths.wssConfigDir,
     opencodeDir: paths.wssOpencodeConfigDir,
     wssBinDir: paths.wssBinDir,
-    noRtk: args.noRtk,
-    noRag: args.noRag,
   });
 
   const installer = await createDepsInstaller();
@@ -147,8 +145,6 @@ async function main() {
       opencodeDir: paths.wssOpencodeConfigDir,
       wssConfigDir: paths.wssConfigDir,
       wssBinDir: paths.wssBinDir,
-      noRtk: args.noRtk,
-      noRag: args.noRag,
     });
 
     logger.check("startup", "Project scaffolded.");
