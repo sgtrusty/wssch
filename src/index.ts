@@ -2,10 +2,14 @@ import { scaffold } from "@commands/scaffold.js";
 import { logger, initLogger } from "@lib/logger.js";
 import { configService } from "@config/index.js";
 import { preflight, ensureDirs } from "@core/lifecycle.js";
-import { isBwrapAvailable, spawnWithSandbox } from "@sandbox/bwrap.js";
+import { isBwrapAvailable, spawnWithSandbox } from "@sandbox/bwrap/bwrap.js";
 import { createDepsInstaller } from "@runtime/dependency.service.js";
 import { createOrchestrator } from "@runtime/orchest.service.js";
-import { initPreferences, isPreferencesInitialized, isInitialCheckComplete } from "@db/pref.service.js";
+import {
+  initPreferences,
+  isPreferencesInitialized,
+  isInitialCheckComplete,
+} from "@db/pref.service.js";
 import { editPreferences, initPreferencesInteractive } from "@ui/prefs.ui.js";
 
 async function initPreferencesIfNeeded(): Promise<void> {
@@ -30,6 +34,14 @@ export async function runWithSandbox(): Promise<void> {
   const paths = configService.paths;
 
   initLogger({ prefix: "sandbox", verbose: args.verbose });
+
+  if (process.getuid?.() === 0 || process.geteuid?.() === 0) {
+    logger.fail(
+      "sandbox",
+      "Cannot run as root. Run as a regular user instead.",
+    );
+    process.exit(1);
+  }
 
   if (!isBwrapAvailable()) {
     logger.fail(
