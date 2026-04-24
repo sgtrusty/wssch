@@ -17,15 +17,16 @@ It's designed as a workspace aggregator — a single entry point that brings tog
 ## Technologies
 
 - **Runtime**: TypeScript / Node.js (>=20) + Bun
-- **Sandbox**: bwrap (bubblewrap)
-- **RAG**: mcp-local-rag with Ollama embeddings
-- **Token Compression**: RTK (rewrite)
+- **Supported Sandboxes**: bwrap (bubblewrap)
+- **Supported AI Assistants**: OpenCode, ForgeCode
+- **Supported MCPs**: Shinpr MCP LocalDB, Shinpr MCP LocalRAG, Lumen MCP
+- **Supported Token Algorithms**: RTK (context compression)
 
 ## Prerequisites
 
 Before using `wssch`, ensure you have:
 
-- [bwrap](https://github.com/containers/bwrap) — Install via your package manager (e.g., `apt install bwrap`, `brew install bwrap`)
+- [bwrap](https://github.com/containers/bwrap) — Install via your package manager (e.g., `apt install bwrap`, `brew install bwrap`). **Optional** — use `--no-sandbox` or `orchestrate` command in Docker/WSL environments without bwrap.
 - [Node.js](https://nodejs.org/) — >=20
 - [OpenCode](https://opencode.ai) — AI coding assistant
 - [Ollama](https://ollama.ai) — For local embeddings (optional, RAG works without it)
@@ -48,9 +49,15 @@ wssch /path/to/your/project
 ## Commands
 
 ```bash
-wssch run [dir]     # Launch sandboxed AI assistant (default: cwd)
-wssch init [dir]   # Scaffold config in a project directory
+wssch run [dir]              # Start sandbox and run orchestrator (default: cwd)
+wssch run --no-sandbox       # Bypass bwrap, run directly (Docker/WSL without bwrap)
+wssch orchestrate            # Run orchestrator without sandbox (alias: orcs)
+wssch init [dir]            # Scaffold config in a project directory
+wssch database              # Edit preferences interactively (alias: db)
+wssch deps                  # Install dependencies
 ```
+
+**Note:** `wssch` can be used without sandbox in non-bwrap environments (Docker, WSL, etc.) using `--no-sandbox` or the `orchestrate` command.
 
 ## Configuration Storage
 
