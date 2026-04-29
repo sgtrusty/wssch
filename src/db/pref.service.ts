@@ -2,8 +2,7 @@ import { spawn } from "node:child_process";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { configService } from "@config/index.js";
-
-const DB_NAME = "pref.db";
+import { logger } from "@lib/logger.js";
 
 export interface Preferences {
   preferredMcpServer: string;
@@ -15,6 +14,12 @@ export interface Preferences {
   initializedAt: number;
   initialCheck: boolean;
   updatedAt: number;
+}
+
+const DB_NAME = "config.db";
+
+function getDbPath(): string {
+  return join(configService.paths.wssConfigDir, DB_NAME);
 }
 
 const DEFAULT_PREFERENCES: Omit<
@@ -29,13 +34,9 @@ const DEFAULT_PREFERENCES: Omit<
   embeddingModel: "all-minilm:l6-v2",
 };
 
-function getDbPath(): string {
-  return join(configService.paths.wssDataDir, DB_NAME);
-}
-
 export async function initPreferences(): Promise<void> {
   const paths = configService.paths;
-  await mkdir(paths.wssDataDir, { recursive: true });
+  await mkdir(paths.wssConfigDir, { recursive: true });
   const dbPath = getDbPath();
 
   const initSql = `
@@ -210,6 +211,7 @@ export async function isPreferencesInitialized(): Promise<boolean> {
       proc.on("close", () => resolve(data));
     });
 
+    logger.info("debug", output.trim());
     return output.trim().length > 0;
   } catch {
     return false;

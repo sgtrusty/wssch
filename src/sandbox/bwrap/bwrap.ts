@@ -80,6 +80,13 @@ async function buildBwrapOptions(): Promise<string[]> {
     SANDBOX_BINDINGS.wssOpencodeCacheDir,
   );
 
+  // Mount config directory as read-only inside sandbox
+  cmdArgs.push(
+    "--ro-bind",
+    paths.wssConfigDir + "/config.db",
+    SANDBOX_BINDINGS.wssConfigDir + "/config.db",
+  );
+
   cmdArgs.push(
     "--bind",
     `${paths.wssDataDir}/mcp`,
@@ -160,4 +167,3 @@ export async function isBwrapAvailable(): Promise<boolean> {
     return false;
   }
 }
-

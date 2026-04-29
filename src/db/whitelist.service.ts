@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { logger } from "@lib/logger.js";
 import { configService } from "@config/index.js";
 
-const DB_NAME = "whitelist.db";
+const DB_NAME = "config.db";
 
 export async function initWhitelist(): Promise<void> {
   const paths = configService.paths;

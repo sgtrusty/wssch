@@ -219,6 +219,7 @@ const ALLOWED_BINARIES = new Set([
   "fd",
   "npm",
   "node",
+  "tsc",
 ]);
 
 const SYSTEM_PATHS = [
@@ -329,4 +330,3 @@ export async function mountUsrBinRecursive(
     } catch {}
   }
 }
-

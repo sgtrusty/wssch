@@ -131,13 +131,13 @@ Defined in `src/config/paths.config.ts` and managed by `src/config/config.servic
 | Path Variable | Default Location | Purpose |
 |---------------|-----------------|---------|
 | `wssConfigDir` | `~/.config/wssch` | Global config storage (env: `WSS_CONFIG_DIR`) |
-| `wssDataDir` | `{project-root}/.wssdata` | Per-project data storage |
+| `wssDataDir` | `~/.config/wssch/projects/${CHECKSUM}` | Per-project data (checksum of project absolute path) |
 | `wssBinDir` | `~/.config/wssch/bin` | Downloaded binaries (MCP servers, tools) |
 
-### Database Access Pattern
+### Database
+- **Single global DB**: `~/.config/wssch/config.db` holds both `preferences` and `whitelist` tables
 - All DB operations use `sqlite3` CLI via `spawn`, never direct SQLite library imports
 - No async locks required: `sqlite3` CLI handles file locking, operations are atomic
-- Error handling uses try/catch with empty catch blocks
 
 ### Key Service Files
 - **`src/config/config.service.ts`**: Singleton config service, parses CLI args, loads `.env`

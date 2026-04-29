@@ -162,6 +162,14 @@ async function main() {
 
   if (command === "database" || command === "db") {
     initLogger({ prefix: "wssch" });
+    const inSandbox = process.env.WSS_IN_SANDBOX === "true";
+    if (inSandbox) {
+      logger.warn(
+        "database",
+        "Running in sandbox mode - config directory is read-only",
+      );
+      return;
+    }
     const initialized = await isPreferencesInitialized();
     if (!initialized) {
       logger.info("database", "Initializing preferences...");
