@@ -4,6 +4,7 @@ export enum DepType {
   proxy = 2,
   mcp = 3,
   harness = 4,
+  harnessPlugin = 5,
 }
 
 export enum ToolkitItem {
@@ -28,6 +29,10 @@ export enum HarnessItem {
   HARNESS_OPENCODE = 0,
   HARNESS_FORGECODE = 1,
   HARNESS_QWENCODE = 2,
+}
+
+export enum HarnessPluginItem {
+  PLUGIN_OMNIROUTE_AUTH = 0,
 }
 
 export type PrefKey = "ollamaUrl" | "embeddingModel";
@@ -110,6 +115,15 @@ export const HARNESS_OPTIONS: DepOption<HarnessItem>[] = [
   },
 ];
 
+export const HARNESS_PLUGIN_OPTIONS: DepOption<HarnessPluginItem>[] = [
+  {
+    id: HarnessPluginItem.PLUGIN_OMNIROUTE_AUTH,
+    name: "omniroute-auth",
+    description: "OmniRoute authentication plugin for OpenCode",
+    type: DepType.harnessPlugin,
+  },
+];
+
 export function getMcpItem(name: string): McpItem | undefined {
   return MCP_OPTIONS.find((o) => o.name === name)?.id;
 }
@@ -120,4 +134,10 @@ export function getOptimizerItem(name: string): OptimizerItem | undefined {
 
 export function getHarnessItem(name: string): HarnessItem | undefined {
   return HARNESS_OPTIONS.find((o) => o.name === name)?.id;
+}
+
+export function getHarnessPluginItem(
+  name: string,
+): HarnessPluginItem | undefined {
+  return HARNESS_PLUGIN_OPTIONS.find((o) => o.name === name)?.id;
 }

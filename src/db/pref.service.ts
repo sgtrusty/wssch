@@ -9,6 +9,7 @@ export interface Preferences {
   tokenOptimizatorAlgo: string[];
   toolkit: string;
   harness: string;
+  harnessPlugins: string[];
   ollamaUrl: string;
   embeddingModel: string;
   initializedAt: number;
@@ -30,6 +31,7 @@ const DEFAULT_PREFERENCES: Omit<
   tokenOptimizatorAlgo: ["RAG"],
   toolkit: "bun",
   harness: "opencode",
+  harnessPlugins: [],
   ollamaUrl: "http://localhost:11434",
   embeddingModel: "all-minilm:l6-v2",
 };
@@ -142,6 +144,9 @@ export async function getPreferences(): Promise<Preferences> {
       : ["RAG"],
     toolkit: prefs.toolkit || "bun",
     harness: prefs.harness || "opencode",
+    harnessPlugins: prefs.harnessPlugins
+      ? JSON.parse(prefs.harnessPlugins)
+      : [],
     ollamaUrl: prefs.ollamaUrl || "http://192.168.1.50:11434",
     embeddingModel: prefs.embeddingModel || "lco-embedding-omni-gguf",
     initializedAt: parseInt(prefs.initializedAt || "0"),

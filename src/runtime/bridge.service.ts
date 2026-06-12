@@ -7,6 +7,7 @@ import { createBunDependency } from "./dependency/toolkit/bun.js";
 import { createOpencodeComponent } from "./dependency/harness/opencode.js";
 import { createForgecodeDependency } from "./dependency/harness/forgecode.js";
 import { createQwencodeDependency } from "./dependency/harness/qwencode.js";
+import { createOmniRouteAuthPlugin } from "./dependency/harness-plugin/omniRouteAuth.js";
 import {
   DepType,
   ToolkitItem,
@@ -14,9 +15,11 @@ import {
   ProxyItem,
   McpItem,
   HarnessItem,
+  HarnessPluginItem,
   getMcpItem,
   getOptimizerItem,
   getHarnessItem,
+  getHarnessPluginItem,
 } from "@runtime/dependency.enum.js";
 import { createLocalRagClient } from "./dependency/mcp/localRag.js";
 import { createLumenMcpDependency } from "./dependency/mcp/lumen.js";
@@ -43,6 +46,10 @@ const HARNESS_DEPS: Record<HarnessItem, () => Dependency> = {
   [HarnessItem.HARNESS_OPENCODE]: createOpencodeComponent,
   [HarnessItem.HARNESS_FORGECODE]: createForgecodeDependency,
   [HarnessItem.HARNESS_QWENCODE]: createQwencodeDependency,
+};
+
+const HARNESS_PLUGIN_DEPS: Record<HarnessPluginItem, () => Dependency> = {
+  [HarnessPluginItem.PLUGIN_OMNIROUTE_AUTH]: createOmniRouteAuthPlugin,
 };
 
 export class BridgeService {
@@ -95,6 +102,13 @@ export class BridgeService {
       deps.push(HARNESS_DEPS[harness]());
     }
 
+    for (const pluginName of prefs.harnessPlugins ?? []) {
+      const plugin = getHarnessPluginItem(pluginName);
+      if (plugin !== undefined && HARNESS_PLUGIN_DEPS[plugin]) {
+        deps.push(HARNESS_PLUGIN_DEPS[plugin]());
+      }
+    }
+
     return deps;
   }
 
@@ -110,6 +124,8 @@ export class BridgeService {
         return MCP_DEPS[item as McpItem]?.();
       case DepType.harness:
         return HARNESS_DEPS[item as HarnessItem]?.();
+      case DepType.harnessPlugin:
+        return HARNESS_PLUGIN_DEPS[item as HarnessPluginItem]?.();
       default:
         return undefined;
     }

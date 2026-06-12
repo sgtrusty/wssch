@@ -5,6 +5,7 @@ import {
   MCP_OPTIONS,
   OPTIMIZER_OPTIONS,
   HARNESS_OPTIONS,
+  HARNESS_PLUGIN_OPTIONS,
 } from "@runtime/dependency.enum.js";
 import { McpLocalAgentDependency } from "@runtime/dependency/mcp/localAgent.js";
 import { LocalRagClient } from "@runtime/dependency/mcp/localRag.js";
@@ -20,6 +21,7 @@ async function promptPreferences(
     tokenOptimizatorAlgo: ["RAG"],
     toolkit: "bun",
     harness: "opencode",
+    harnessPlugins: [],
     ollamaUrl: "http://localhost:11434",
     embeddingModel: "all-minilm:l6-v2",
   };
@@ -48,6 +50,16 @@ async function promptPreferences(
       message: "harness framework:",
       choices: HARNESS_OPTIONS.map((o) => o.name),
       default: prefs.harness,
+    },
+    {
+      type: "checkbox",
+      name: "harnessPlugins",
+      message: "Harness plugins:",
+      choices: HARNESS_PLUGIN_OPTIONS.map((o) => ({
+        name: `${o.name} — ${o.description}`,
+        value: o.name,
+      })),
+      default: prefs.harnessPlugins ?? [],
     },
   ]);
 
@@ -111,6 +123,7 @@ async function promptPreferences(
     tokenOptimizatorAlgo: answers.tokenOptimizatorAlgo,
     toolkit: "bun",
     harness: answers.harness,
+    harnessPlugins: answers.harnessPlugins,
   };
 }
 
