@@ -8,7 +8,7 @@ export interface Preferences {
   preferredMcpServer: string;
   tokenOptimizatorAlgo: string[];
   toolkit: string;
-  agentic: string;
+  harness: string;
   ollamaUrl: string;
   embeddingModel: string;
   initializedAt: number;
@@ -29,7 +29,7 @@ const DEFAULT_PREFERENCES: Omit<
   preferredMcpServer: "local",
   tokenOptimizatorAlgo: ["RAG"],
   toolkit: "bun",
-  agentic: "opencode",
+  harness: "opencode",
   ollamaUrl: "http://localhost:11434",
   embeddingModel: "all-minilm:l6-v2",
 };
@@ -141,7 +141,7 @@ export async function getPreferences(): Promise<Preferences> {
       ? JSON.parse(prefs.tokenOptimizatorAlgo)
       : ["RAG"],
     toolkit: prefs.toolkit || "bun",
-    agentic: prefs.agentic || "opencode",
+    harness: prefs.harness || "opencode",
     ollamaUrl: prefs.ollamaUrl || "http://192.168.1.50:11434",
     embeddingModel: prefs.embeddingModel || "lco-embedding-omni-gguf",
     initializedAt: parseInt(prefs.initializedAt || "0"),

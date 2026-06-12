@@ -3,7 +3,11 @@ import { mkdir } from "node:fs/promises";
 import { configService } from "@config/index.js";
 import { installerService } from "@runtime/installer/installer.service.js";
 import type { Dependency } from "@runtime/runtime.interface.js";
-import { checkMcpEnabled, writeMcpConfig, getActiveAgent } from "./mcp.util.js";
+import {
+  checkMcpEnabled,
+  writeMcpConfig,
+  getActiveHarness,
+} from "./mcp.util.js";
 
 const SERVER_NAME = "mcp-local-agent";
 
@@ -16,12 +20,12 @@ export class McpLocalAgentDependency implements Dependency {
   }
 
   async isAvailable(): Promise<boolean> {
-    const agent = await getActiveAgent();
+    const agent = await getActiveHarness();
     return checkMcpEnabled(agent, SERVER_NAME);
   }
 
   async install(): Promise<void> {
-    const agent = await getActiveAgent();
+    const agent = await getActiveHarness();
     const paths = configService.paths;
 
     const strategy = installerService.esbuild({

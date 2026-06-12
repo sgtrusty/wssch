@@ -4,18 +4,18 @@ import { createMcpLocalAgentDependency } from "./dependency/mcp/localAgent.js";
 import { createRtkDependency } from "./dependency/optimizer/rtk.js";
 import { createOllamaProxyDependency } from "./dependency/proxy/ollamaProxy.js";
 import { createBunDependency } from "./dependency/toolkit/bun.js";
-import { createOpencodeComponent } from "./dependency/agentic/opencode.js";
-import { createForgecodeDependency } from "./dependency/agentic/forgecode.js";
+import { createOpencodeComponent } from "./dependency/harness/opencode.js";
+import { createForgecodeDependency } from "./dependency/harness/forgecode.js";
 import {
   DepType,
   ToolkitItem,
   OptimizerItem,
   ProxyItem,
   McpItem,
-  AgenticItem,
+  HarnessItem,
   getMcpItem,
   getOptimizerItem,
-  getAgenticItem,
+  getHarnessItem,
 } from "@runtime/dependency.enum.js";
 import { createLocalRagClient } from "./dependency/mcp/localRag.js";
 import { createLumenMcpDependency } from "./dependency/mcp/lumen.js";
@@ -38,9 +38,9 @@ const MCP_DEPS: Record<McpItem, () => Dependency> = {
   [McpItem.MCP_LUMEN]: createLumenMcpDependency,
 };
 
-const AGENTIC_DEPS: Record<AgenticItem, () => Dependency> = {
-  [AgenticItem.AGENTIC_OPENCODE]: createOpencodeComponent,
-  [AgenticItem.AGENTIC_FORGECODE]: createForgecodeDependency,
+const HARNESS_DEPS: Record<HarnessItem, () => Dependency> = {
+  [HarnessItem.HARNESS_OPENCODE]: createOpencodeComponent,
+  [HarnessItem.HARNESS_FORGECODE]: createForgecodeDependency,
 };
 
 export class BridgeService {
@@ -88,9 +88,9 @@ export class BridgeService {
       deps.push(mcpDep);
     }
 
-    const agentic = getAgenticItem(prefs.agentic);
-    if (agentic !== undefined && AGENTIC_DEPS[agentic]) {
-      deps.push(AGENTIC_DEPS[agentic]());
+    const harness = getHarnessItem(prefs.harness);
+    if (harness !== undefined && HARNESS_DEPS[harness]) {
+      deps.push(HARNESS_DEPS[harness]());
     }
 
     return deps;
@@ -106,8 +106,8 @@ export class BridgeService {
         return PROXY_DEPS[item as ProxyItem]?.();
       case DepType.mcp:
         return MCP_DEPS[item as McpItem]?.();
-      case DepType.agentic:
-        return AGENTIC_DEPS[item as AgenticItem]?.();
+      case DepType.harness:
+        return HARNESS_DEPS[item as HarnessItem]?.();
       default:
         return undefined;
     }
@@ -115,4 +115,3 @@ export class BridgeService {
 }
 
 export const bridgeService = new BridgeService();
-

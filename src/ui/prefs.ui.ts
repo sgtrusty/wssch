@@ -4,7 +4,7 @@ import type { Preferences } from "@db/pref.service.js";
 import {
   MCP_OPTIONS,
   OPTIMIZER_OPTIONS,
-  AGENTIC_OPTIONS,
+  HARNESS_OPTIONS,
 } from "@runtime/dependency.enum.js";
 import { McpLocalAgentDependency } from "@runtime/dependency/mcp/localAgent.js";
 import { LocalRagClient } from "@runtime/dependency/mcp/localRag.js";
@@ -19,7 +19,7 @@ async function promptPreferences(
     preferredMcpServer: "local",
     tokenOptimizatorAlgo: ["RAG"],
     toolkit: "bun",
-    agentic: "opencode",
+    harness: "opencode",
     ollamaUrl: "http://localhost:11434",
     embeddingModel: "all-minilm:l6-v2",
   };
@@ -44,10 +44,10 @@ async function promptPreferences(
     },
     {
       type: "list",
-      name: "agentic",
-      message: "Agentic framework:",
-      choices: AGENTIC_OPTIONS.map((o) => o.name),
-      default: prefs.agentic,
+      name: "harness",
+      message: "harness framework:",
+      choices: HARNESS_OPTIONS.map((o) => o.name),
+      default: prefs.harness,
     },
   ]);
 
@@ -110,7 +110,7 @@ async function promptPreferences(
     embeddingModel,
     tokenOptimizatorAlgo: answers.tokenOptimizatorAlgo,
     toolkit: "bun",
-    agentic: answers.agentic,
+    harness: answers.harness,
   };
 }
 
