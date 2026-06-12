@@ -22,8 +22,12 @@ export interface LumenMcpConfig {
 function getMcpConfigPath(agent: AgentType): string {
   const paths = configService.paths;
 
+  const opencodeDir = join(homedir(), ".config/opencode");
   if (agent === "opencode") {
-    return join(paths.wssOpencodeConfigDir, "opencode.json");
+    if (!existsSync(opencodeDir)) {
+      mkdirSync(opencodeDir, { recursive: true });
+    }
+    return join(opencodeDir, "opencode.json");
   }
 
   const forgeDir = join(homedir(), ".forge");
@@ -102,4 +106,3 @@ export function writeMcpConfig(
   writeFileSync(configPath, JSON.stringify(config, null, 2));
   logger.info("mcp", `Wrote ${agent} MCP config to ${configPath}`);
 }
-

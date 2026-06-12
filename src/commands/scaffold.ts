@@ -23,23 +23,11 @@ export async function scaffold(config: ScaffoldConfig): Promise<void> {
   if (!existsSync(wssDataDir)) {
     mkdirSync(wssDataDir, { recursive: true });
   }
-  scaffoldWssdataGitignore(wssDataDir);
 
   logger.check("scaffold", `Created initial scaffold at ${targetDir}`);
 }
 
-function scaffoldWssdataGitignore(wssDataDir: string): void {
-  const gitignorePath = join(wssDataDir, ".gitignore");
-  const content = `*`;
-
-  try {
-    writeFileSync(gitignorePath, content);
-    logger.info("scaffold", `Wrote .gitignore to ${gitignorePath}`);
-  } catch (err) {
-    logger.warn("scaffold", "Failed to write .gitignore: " + err);
-  }
-}
-
+/** TODO: move scaffolding to @dependency/opencode.ts */
 function scaffoldOpencodeJson(opencodeDir: string): void {
   const cfg: Record<string, unknown> = {
     $schema: "https://opencode.ai/config.json",

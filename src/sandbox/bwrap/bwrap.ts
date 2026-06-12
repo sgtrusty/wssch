@@ -7,7 +7,7 @@ import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { logger } from "@lib/logger.js";
 import { configService, SANDBOX_BINDINGS } from "@config/index.js";
-import { buildUsrBinArgs } from "./bwrap-helper.js";
+import { buildUsrBinArgs, buildDataMountArgs } from "./bwrap-helper.js";
 
 const BWARP_BIN = "/usr/bin/bwrap";
 
@@ -69,16 +69,14 @@ async function buildBwrapOptions(): Promise<string[]> {
   cmdArgs.push("--bind", paths.wssBinDir, SANDBOX_BINDINGS.wssBinDir);
   cmdArgs.push("--setenv", "PATH", SANDBOX_BINDINGS.path);
 
-  cmdArgs.push(
-    "--bind",
-    paths.wssOpencodeConfigDir,
-    SANDBOX_BINDINGS.opencodeConfig,
+  // Mount data directories for configured apps (opencode, etc.)
+  const dataMountArgs = buildDataMountArgs(
+    paths.wssConfigDir,
+    SANDBOX_BINDINGS,
   );
-  cmdArgs.push(
-    "--bind",
-    paths.wssOpencodeCacheDir,
-    SANDBOX_BINDINGS.wssOpencodeCacheDir,
-  );
+  for (const arg of dataMountArgs) {
+    cmdArgs.push(arg);
+  }
 
   // Mount config directory as read-only inside sandbox
   cmdArgs.push(

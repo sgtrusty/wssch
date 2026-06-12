@@ -243,6 +243,30 @@ const SYSTEM_PATHS = [
   "/etc/ld.so.cache",
 ];
 
+export const DATAMOUNT_CONFIG: string[] = ["opencode"];
+export const DATAMOUNT_SHARE: string[] = ["opencode"];
+
+export function buildDataMountArgs(
+  configDir: string,
+  sandboxBindings: { opencodeConfig: string; wssOpencodeCacheDir: string },
+): string[] {
+  const args: string[] = [];
+
+  for (const name of DATAMOUNT_CONFIG) {
+    const src = `${configDir}/data/config/${name}`;
+    const target = sandboxBindings.opencodeConfig;
+    args.push("--bind", src, target);
+  }
+
+  for (const name of DATAMOUNT_SHARE) {
+    const src = `${configDir}/data/share/${name}`;
+    const target = sandboxBindings.wssOpencodeCacheDir;
+    args.push("--bind", src, target);
+  }
+
+  return args;
+}
+
 async function which(cmd: string): Promise<string | null> {
   try {
     const { stdout } = await execAsync(`command -v ${cmd}`, {

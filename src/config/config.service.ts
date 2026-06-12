@@ -79,10 +79,10 @@ class ConfigService {
       wssConfigDir,
       wssOpencodeConfigDir: inSandbox
         ? `${process.env.HOME}/.config/opencode`
-        : `${wssConfigDir}/opencode/config`,
+        : `${wssConfigDir}/data/config/opencode`,
       wssOpencodeCacheDir: inSandbox
         ? `${process.env.HOME}/.local/share/opencode`
-        : `${wssConfigDir}/opencode/share`,
+        : `${wssConfigDir}/data/share/opencode`,
       wssBinDir: `${wssConfigDir}/bin`,
       wssDataDir: `${wssConfigDir}/projects/${projectChecksum}`,
     };
