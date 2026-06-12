@@ -5,17 +5,22 @@ import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { logger } from "@lib/logger.js";
 
-export function detectOs(): "linux" | "darwin" | "windows" {
+export function detectOs<T extends boolean = false>(
+  short?: T,
+): T extends true
+  ? "linux" | "darwin" | "win"
+  : "linux" | "darwin" | "windows" {
   const platform = process.platform;
-  if (platform === "darwin") return "darwin";
-  if (platform === "win32") return "windows";
-  return "linux";
+  if (platform === "darwin") return "darwin" as any;
+  if (platform === "win32") return (short ? "win" : "windows") as any;
+  return "linux" as any;
 }
 
 export function detectArch(): "x86_64" | "aarch64" {
   const arch = process.arch as string;
   if (arch === "x64" || arch === "amd64" || arch === "ia32") return "x86_64";
-  if (arch === "arm64" || arch === "aarch64" || arch === "arm") return "aarch64";
+  if (arch === "arm64" || arch === "aarch64" || arch === "arm")
+    return "aarch64";
   throw new Error(`Unsupported architecture: ${arch}`);
 }
 
@@ -24,7 +29,9 @@ export async function getLibcType(): Promise<"gnu" | "musl"> {
     const proc = spawn("ldd", ["--version"], { stdio: "pipe" });
     const output = await new Promise<string>((resolve, reject) => {
       let data = "";
-      proc.stdout?.on("data", (d) => { data += d; });
+      proc.stdout?.on("data", (d) => {
+        data += d;
+      });
       proc.on("close", () => resolve(data));
       proc.on("error", reject);
     });
@@ -52,7 +59,10 @@ export async function getForgeTarget(): Promise<string> {
   return `${arch}-unknown-linux-${libc}`;
 }
 
-export async function getLatestVersion(repo: string, fallback: string): Promise<string> {
+export async function getLatestVersion(
+  repo: string,
+  fallback: string,
+): Promise<string> {
   try {
     const proc = spawn(
       "curl",
@@ -61,7 +71,9 @@ export async function getLatestVersion(repo: string, fallback: string): Promise<
     );
     const output = await new Promise<string>((resolve, reject) => {
       let data = "";
-      proc.stdout?.on("data", (d) => { data += d; });
+      proc.stdout?.on("data", (d) => {
+        data += d;
+      });
       proc.on("close", (code) => (code === 0 ? resolve(data) : reject()));
       proc.on("error", reject);
     });
@@ -162,4 +174,3 @@ export async function moveExtractedBin(
   await rm(extractedFolder, { force: true, recursive: true });
   return finalBin;
 }
-

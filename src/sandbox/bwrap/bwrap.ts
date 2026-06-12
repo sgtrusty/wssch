@@ -7,7 +7,11 @@ import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { logger } from "@lib/logger.js";
 import { configService, SANDBOX_BINDINGS } from "@config/index.js";
-import { buildUsrBinArgs, buildDataMountArgs } from "./bwrap-helper.js";
+import {
+  buildUsrBinArgs,
+  buildDataMountArgs,
+  ensureFakePasswd,
+} from "./bwrap-helper.js";
 
 const BWARP_BIN = "/usr/bin/bwrap";
 
@@ -29,6 +33,12 @@ async function buildBwrapOptions(): Promise<string[]> {
   cmdArgs.push("--dir", "/var/tmp");
   cmdArgs.push("--tmpfs", "/run");
   cmdArgs.push("--tmpfs", "/run/lock");
+  const fakePasswdPath = await ensureFakePasswd(
+    paths.wssConfigDir,
+    SANDBOX_BINDINGS.targetDir,
+  );
+  cmdArgs.push("--dir", "/etc");
+  cmdArgs.push("--ro-bind", fakePasswdPath, "/etc/passwd");
 
   const usrBinArgs = await buildUsrBinArgs();
   for (const arg of usrBinArgs) {

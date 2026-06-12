@@ -27,6 +27,7 @@ export enum McpItem {
 export enum HarnessItem {
   HARNESS_OPENCODE = 0,
   HARNESS_FORGECODE = 1,
+  HARNESS_QWENCODE = 2,
 }
 
 export type PrefKey = "ollamaUrl" | "embeddingModel";
@@ -99,6 +100,12 @@ export const HARNESS_OPTIONS: DepOption<HarnessItem>[] = [
     id: HarnessItem.HARNESS_FORGECODE,
     name: "forgecode",
     description: "ForgeCode agent",
+    type: DepType.harness,
+  },
+  {
+    id: HarnessItem.HARNESS_QWENCODE,
+    name: "qwencode",
+    description: "Qwencode agent",
     type: DepType.harness,
   },
 ];

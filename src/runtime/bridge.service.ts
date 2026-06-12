@@ -6,6 +6,7 @@ import { createOllamaProxyDependency } from "./dependency/proxy/ollamaProxy.js";
 import { createBunDependency } from "./dependency/toolkit/bun.js";
 import { createOpencodeComponent } from "./dependency/harness/opencode.js";
 import { createForgecodeDependency } from "./dependency/harness/forgecode.js";
+import { createQwencodeDependency } from "./dependency/harness/qwencode.js";
 import {
   DepType,
   ToolkitItem,
@@ -41,6 +42,7 @@ const MCP_DEPS: Record<McpItem, () => Dependency> = {
 const HARNESS_DEPS: Record<HarnessItem, () => Dependency> = {
   [HarnessItem.HARNESS_OPENCODE]: createOpencodeComponent,
   [HarnessItem.HARNESS_FORGECODE]: createForgecodeDependency,
+  [HarnessItem.HARNESS_QWENCODE]: createQwencodeDependency,
 };
 
 export class BridgeService {
