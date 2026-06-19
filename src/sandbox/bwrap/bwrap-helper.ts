@@ -274,36 +274,6 @@ export function buildDataMountArgs(
   return args;
 }
 
-/**
- * Ensures that a fake passwd file exists within the configuration directory profile
- * to satisfy internal runtime dependencies (like os.userInfo) inside the sandbox.
- */
-export async function ensureFakePasswd(
-  configDir: string,
-  targetDir: string,
-): Promise<string> {
-  const securityDir = join(configDir, "data", "security");
-  const passwdPath = join(securityDir, "fakepasswd");
-
-  try {
-    await access(passwdPath, constants.F_OK);
-  } catch {
-    // Scaffold it recursively if the directory skeleton doesn't exist yet
-    await mkdir(securityDir, { recursive: true });
-
-    const uid = process.getuid?.() ?? 1000;
-    const gid = process.getgid?.() ?? 1000;
-
-    // Parse out a clean virtual workspace home layout directory path inside the sandbox
-    const sandboxHome = targetDir.split("/").slice(0, 3).join("/");
-    const content = `user:x:${uid}:${gid}:Developer:${sandboxHome}:/bin/bash\n`;
-
-    await writeFile(passwdPath, content, { mode: 0o644 });
-  }
-
-  return passwdPath;
-}
-
 async function which(cmd: string): Promise<string | null> {
   try {
     const { stdout } = await execAsync(`command -v ${cmd}`, {
@@ -390,4 +360,24 @@ export async function mountUsrBinRecursive(
       }
     } catch {}
   }
+}
+
+export async function findGitDirs(dir: string, root = dir): Promise<string[]> {
+  const found: string[] = [];
+  let entries;
+  try {
+    entries = await readdir(dir, { withFileTypes: true });
+  } catch {
+    return found;
+  }
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const full = join(dir, entry.name);
+    if (entry.name === ".git") {
+      found.push(full); // don't recurse into it — matches --prune behavior
+      continue;
+    }
+    found.push(...(await findGitDirs(full, root)));
+  }
+  return found;
 }

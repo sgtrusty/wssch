@@ -10,7 +10,7 @@ import { configService, SANDBOX_BINDINGS } from "@config/index.js";
 import {
   buildUsrBinArgs,
   buildDataMountArgs,
-  ensureFakePasswd,
+  findGitDirs,
 } from "./bwrap-helper.js";
 
 const BWARP_BIN = "/usr/bin/bwrap";
@@ -33,12 +33,6 @@ async function buildBwrapOptions(): Promise<string[]> {
   cmdArgs.push("--dir", "/var/tmp");
   cmdArgs.push("--tmpfs", "/run");
   cmdArgs.push("--tmpfs", "/run/lock");
-  const fakePasswdPath = await ensureFakePasswd(
-    paths.wssConfigDir,
-    SANDBOX_BINDINGS.targetDir,
-  );
-  cmdArgs.push("--dir", "/etc");
-  cmdArgs.push("--ro-bind", fakePasswdPath, "/etc/passwd");
 
   const usrBinArgs = await buildUsrBinArgs();
   for (const arg of usrBinArgs) {
@@ -48,14 +42,12 @@ async function buildBwrapOptions(): Promise<string[]> {
   const args = configService.args;
   cmdArgs.push("--bind", args.targetDir, SANDBOX_BINDINGS.targetDir);
 
-  try {
-    await readdir(`${args.targetDir}/.git`);
-    cmdArgs.push(
-      "--ro-bind",
-      `${args.targetDir}/.git`,
-      `${SANDBOX_BINDINGS.targetDir}/.git`,
-    );
-  } catch {}
+  const gitDirs = await findGitDirs(args.targetDir);
+  for (const gitDir of gitDirs) {
+    const rel = gitDir.slice(args.targetDir.length + 1);
+    cmdArgs.push("--ro-bind", gitDir, `${SANDBOX_BINDINGS.targetDir}/${rel}`);
+  }
+
   cmdArgs.push(
     "--chdir",
     SANDBOX_BINDINGS.targetDir,
