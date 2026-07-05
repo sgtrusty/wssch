@@ -29,7 +29,7 @@ const DEFAULT_PREFERENCES: Omit<
   "initializedAt" | "initialCheck" | "updatedAt"
 > = {
   preferredMcpServer: "local",
-  tokenOptimizatorAlgo: ["RAG"],
+  tokenOptimizatorAlgo: ["RTK"],
   toolkit: "bun",
   harness: HARNESS_OPTIONS[0].name,
   harnessPlugins: [],
@@ -142,7 +142,7 @@ export async function getPreferences(): Promise<Preferences> {
     preferredMcpServer: prefs.preferredMcpServer || "local",
     tokenOptimizatorAlgo: prefs.tokenOptimizatorAlgo
       ? JSON.parse(prefs.tokenOptimizatorAlgo)
-      : ["RAG"],
+      : ["RTK"],
     toolkit: prefs.toolkit || "bun",
     harness: prefs.harness || HARNESS_OPTIONS[0].name,
     harnessPlugins: prefs.harnessPlugins
@@ -164,6 +164,7 @@ export async function updatePreferences(
 
   for (const [key, value] of Object.entries(updates)) {
     if (key === "initializedAt") continue;
+    if (value === undefined) continue;
     const val =
       typeof value === "object" ? JSON.stringify(value) : String(value);
 
@@ -197,6 +198,14 @@ export async function updatePreferences(
       proc.on("error", () => resolve());
     });
   } catch {}
+}
+
+export async function getActiveHarness(): Promise<string> {
+  if (configService.args.harnessOverride) {
+    return configService.args.harnessOverride;
+  }
+  const prefs = await getPreferences();
+  return prefs.harness || HARNESS_OPTIONS[0].name;
 }
 
 export async function isPreferencesInitialized(): Promise<boolean> {

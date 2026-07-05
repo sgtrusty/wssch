@@ -60,7 +60,7 @@ export const TOOLKIT_OPTIONS: DepOption<ToolkitItem>[] = [
 export const OPTIMIZER_OPTIONS: DepOption<OptimizerItem>[] = [
   {
     id: OptimizerItem.ALGO_RTK,
-    name: "RAG",
+    name: "RTK",
     description: "RTK Token optimizer",
     type: DepType.optimizer,
   },

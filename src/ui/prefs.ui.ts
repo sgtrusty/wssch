@@ -18,7 +18,7 @@ async function promptPreferences(
 ): Promise<Partial<Preferences>> {
   const prefs = current || {
     preferredMcpServer: "local",
-    tokenOptimizatorAlgo: ["RAG"],
+    tokenOptimizatorAlgo: ["RTK"],
     toolkit: "bun",
     harness: "opencode",
     harnessPlugins: [],
@@ -55,6 +55,7 @@ async function promptPreferences(
       type: "checkbox",
       name: "harnessPlugins",
       message: "Harness plugins:",
+      when: (answers: any) => answers.harness === "opencode",
       choices: HARNESS_PLUGIN_OPTIONS.map((o) => ({
         name: `${o.name} — ${o.description}`,
         value: o.name,
@@ -123,7 +124,7 @@ async function promptPreferences(
     tokenOptimizatorAlgo: answers.tokenOptimizatorAlgo,
     toolkit: "bun",
     harness: answers.harness,
-    harnessPlugins: answers.harnessPlugins,
+    harnessPlugins: answers.harnessPlugins ?? [],
   };
 }
 

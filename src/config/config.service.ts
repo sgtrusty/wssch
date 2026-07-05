@@ -46,6 +46,7 @@ Options:
   --no-rag            Disable RAG (MCP)
   --verbose, -v       Verbose output
   --force             Force overwrite
+  --harness <name>    Harness override (opencode, goose, etc.)
   --trust-hours <n>   Whitelist trust hours (default: 24)
   --help, -h           Show this help
 
@@ -98,6 +99,7 @@ class ConfigService {
     let whitelistHours = 24;
     let verbose = false;
     let force = false;
+    let harnessOverride: string | null = null;
 
     const processed: string[] = [];
     for (let i = 0; i < args.length; i++) {
@@ -135,6 +137,12 @@ class ConfigService {
         case "--force":
           force = true;
           break;
+        case "--harness":
+          if (next) {
+            harnessOverride = next;
+            i++;
+          }
+          break;
         case "--trust-hours":
           if (next) {
             whitelistHours = parseInt(next);
@@ -162,6 +170,7 @@ class ConfigService {
       whitelistHours,
       rtkBin,
       debug: process.env.DEBUG === "1",
+      harnessOverride,
     };
   }
 

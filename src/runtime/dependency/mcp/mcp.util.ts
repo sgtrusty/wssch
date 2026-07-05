@@ -1,18 +1,13 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { configService } from "@config/index.js";
-import { getPreferences } from "@db/pref.service.js";
+import { getActiveHarness } from "@db/pref.service.js";
 import { HarnessItem, HARNESS_OPTIONS } from "@runtime/dependency.enum.js";
 import { logger } from "@lib/logger.js";
 
 const OPENCODE_NAME = HARNESS_OPTIONS[HarnessItem.HARNESS_OPENCODE].name;
 
 export type HarnessType = string;
-
-export async function getActiveHarness(): Promise<HarnessType> {
-  const prefs = await getPreferences();
-  return prefs.harness || HARNESS_OPTIONS[0].name;
-}
 
 export interface LumenMcpConfig {
   command?: string;

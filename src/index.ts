@@ -8,22 +8,14 @@ import { createOrchestrator } from "@runtime/orchest.service.js";
 import {
   initPreferences,
   isPreferencesInitialized,
-  isInitialCheckComplete,
 } from "@db/pref.service.js";
-import { editPreferences, initPreferencesInteractive } from "@ui/prefs.ui.js";
+import { editPreferences } from "@ui/prefs.ui.js";
 
 async function initPreferencesIfNeeded(): Promise<void> {
   const initialized = await isPreferencesInitialized();
   if (!initialized) {
     logger.info("startup", "Setting up preferences...");
     await initPreferences();
-    await initPreferencesInteractive();
-  } else {
-    const checkComplete = await isInitialCheckComplete();
-    if (!checkComplete) {
-      logger.info("startup", "Completing initial preferences check...");
-      await initPreferencesInteractive();
-    }
   }
 }
 

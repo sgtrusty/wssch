@@ -3,13 +3,13 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { mkdir } from "node:fs/promises";
 import { configService } from "@config/index.js";
+import { getActiveHarness } from "@db/pref.service.js";
 import { installerService } from "@runtime/installer/installer.service.js";
 import type { Dependency, DepRef } from "@runtime/runtime.interface.js";
 import { ProxyItem, DepType } from "@runtime/dependency.enum.js";
 import {
   checkMcpEnabled,
   writeMcpConfig,
-  getActiveHarness,
 } from "./mcp.util.js";
 
 const SERVER_NAME = "lumen";
