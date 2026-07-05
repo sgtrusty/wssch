@@ -1,4 +1,3 @@
-import { spawn } from "node:child_process";
 import { mkdir, access, constants } from "node:fs/promises";
 import { join } from "node:path";
 import { logger } from "@lib/logger.js";
@@ -41,19 +40,6 @@ async function checkBwrap(): Promise<boolean> {
   return false;
 }
 
-async function checkOpencode(): Promise<boolean> {
-  logger.progress("lifecycle", "Checking opencode");
-  if (
-    (await commandExists("/usr/bin/opencode")) ||
-    (await commandExists("/usr/sbin/opencode"))
-  ) {
-    logger.check("lifecycle", "opencode available");
-    return true;
-  }
-  logger.fail("lifecycle", "opencode binary not found");
-  return false;
-}
-
 async function checkNode(): Promise<boolean> {
   logger.progress("lifecycle", "Checking node");
   const version = process.version.slice(1).split(".")[0];
@@ -70,7 +56,6 @@ export async function preflight(): Promise<boolean> {
   await Promise.all(required);
 
   checkBwrap();
-  checkOpencode();
 
   const results = await Promise.all(required);
   return results.every((r) => r);

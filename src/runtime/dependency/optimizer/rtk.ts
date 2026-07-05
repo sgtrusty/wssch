@@ -4,7 +4,11 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { logger } from "@lib/logger.js";
 import { configService } from "@config/index.js";
+import { getPreferences } from "@db/pref.service.js";
+import { HarnessItem, HARNESS_OPTIONS } from "@runtime/dependency.enum.js";
 import type { Dependency } from "@runtime/runtime.interface.js";
+
+const OPENCODE_NAME = HARNESS_OPTIONS[HarnessItem.HARNESS_OPENCODE].name;
 import {
   safeInstallBin,
   downloadUrl,
@@ -114,6 +118,14 @@ export class RtkDependency implements Dependency {
   }
 
   async postInstall(): Promise<void> {
+    const prefs = await getPreferences();
+    const harness = prefs.harness || HARNESS_OPTIONS[0].name;
+
+    if (harness !== OPENCODE_NAME) {
+      logger.info("subdep", `Skipping RTK init for non-opencode harness: ${harness}`);
+      return;
+    }
+
     return new Promise((resolve) => {
       const proc = spawn("rtk", ["init", "-g", "--opencode"], {
         stdio: "inherit",

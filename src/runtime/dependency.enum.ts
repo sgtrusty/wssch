@@ -145,6 +145,29 @@ export const HARNESS_PLUGIN_OPTIONS: DepOption<HarnessPluginItem>[] = [
   },
 ];
 
+export interface HarnessPathConfig {
+  configDir: string;
+  cacheDir: string;
+}
+
+export const HARNESS_PATHS: Record<string, HarnessPathConfig> = {
+  opencode: { configDir: ".config/opencode", cacheDir: ".local/share/opencode" },
+  forgecode: { configDir: ".forge", cacheDir: ".forge/cache" },
+  qwencode: { configDir: ".config/qwen", cacheDir: ".local/share/qwen" },
+  kilocode: { configDir: ".config/kilocode", cacheDir: ".local/share/kilocode" },
+  goose: { configDir: ".config/goose", cacheDir: ".local/share/goose" },
+  crush: { configDir: ".config/crush", cacheDir: ".local/share/crush" },
+};
+
+export const HARNESS_BINARIES: Record<string, string> = {
+  opencode: "opencode",
+  forgecode: "forge",
+  qwencode: "qwen-code",
+  kilocode: "kilo",
+  goose: "goose",
+  crush: "crush",
+};
+
 export function getMcpItem(name: string): McpItem | undefined {
   return MCP_OPTIONS.find((o) => o.name === name)?.id;
 }

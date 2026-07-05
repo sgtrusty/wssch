@@ -1,15 +1,17 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { homedir } from "node:os";
 import { configService } from "@config/index.js";
 import { getPreferences } from "@db/pref.service.js";
+import { HarnessItem, HARNESS_OPTIONS } from "@runtime/dependency.enum.js";
 import { logger } from "@lib/logger.js";
 
-export type HarnessType = "opencode" | "forgecode";
+const OPENCODE_NAME = HARNESS_OPTIONS[HarnessItem.HARNESS_OPENCODE].name;
+
+export type HarnessType = string;
 
 export async function getActiveHarness(): Promise<HarnessType> {
   const prefs = await getPreferences();
-  return (prefs.harness as HarnessType) || "opencode";
+  return prefs.harness || HARNESS_OPTIONS[0].name;
 }
 
 export interface LumenMcpConfig {
@@ -20,22 +22,19 @@ export interface LumenMcpConfig {
 }
 
 function getMcpConfigPath(agent: HarnessType): string {
-  const paths = configService.paths;
+  const inSandbox = process.env.WSS_IN_SANDBOX === "true";
+  const { configDir: relConfigDir } = configService.getHarnessPaths(agent);
+  const configDir = inSandbox ? `/home/user/${relConfigDir}` : join(process.env.HOME || "/home/user", relConfigDir);
 
-  const opencodeDir = join(homedir(), ".config/opencode");
-  if (agent === "opencode") {
-    if (!existsSync(opencodeDir)) {
-      mkdirSync(opencodeDir, { recursive: true });
-    }
-    return join(opencodeDir, "opencode.json");
+  if (!existsSync(configDir)) {
+    mkdirSync(configDir, { recursive: true });
   }
 
-  const forgeDir = join(homedir(), ".forge");
-  if (!existsSync(forgeDir)) {
-    mkdirSync(forgeDir, { recursive: true });
+  if (agent === OPENCODE_NAME) {
+    return join(configDir, "opencode.json");
   }
 
-  return join(forgeDir, ".mcp.json");
+  return join(configDir, ".mcp.json");
 }
 
 export function checkMcpEnabled(
@@ -52,7 +51,7 @@ export function checkMcpEnabled(
     const content = readFileSync(configPath, "utf-8");
     const config = JSON.parse(content);
 
-    if (agent === "opencode") {
+    if (agent === OPENCODE_NAME) {
       return !!(
         (config as { mcp?: Record<string, unknown> }).mcp &&
         (config.mcp as Record<string, unknown>)[serverName]
@@ -82,7 +81,7 @@ export function writeMcpConfig(
     } catch {}
   }
 
-  if (agent === "opencode") {
+  if (agent === OPENCODE_NAME) {
     if (!config.mcp) {
       config.mcp = {};
     }

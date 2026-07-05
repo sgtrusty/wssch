@@ -7,10 +7,13 @@ import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { logger } from "@lib/logger.js";
 import { configService, SANDBOX_BINDINGS } from "@config/index.js";
+import { getPreferences } from "@db/pref.service.js";
+import { HARNESS_OPTIONS, HARNESS_BINARIES } from "@runtime/dependency.enum.js";
 import {
   buildUsrBinArgs,
   buildDataMountArgs,
   findGitDirs,
+  which,
 } from "./bwrap-helper.js";
 
 const BWARP_BIN = "/usr/bin/bwrap";
@@ -39,6 +42,15 @@ async function buildBwrapOptions(): Promise<string[]> {
     cmdArgs.push(arg);
   }
 
+  // Mount the active harness binary if found globally
+  const prefs = await getPreferences();
+  const harnessName = prefs.harness || HARNESS_OPTIONS[0].name;
+  const harnessBin = HARNESS_BINARIES[harnessName] || harnessName;
+  const harnessBinPath = await which(harnessBin);
+  if (harnessBinPath) {
+    cmdArgs.push("--ro-bind", harnessBinPath, `/usr/bin/${harnessBin}`);
+  }
+
   const args = configService.args;
   cmdArgs.push("--bind", args.targetDir, SANDBOX_BINDINGS.targetDir);
 
@@ -59,7 +71,7 @@ async function buildBwrapOptions(): Promise<string[]> {
   cmdArgs.push(
     "--setenv",
     "OPENCODE_CONFIG_DIR",
-    SANDBOX_BINDINGS.opencodeConfig,
+    `/home/user/${configService.getHarnessPaths(harnessName).configDir}`,
   );
 
   const uid = process.getuid?.() ?? 1000;
@@ -71,10 +83,15 @@ async function buildBwrapOptions(): Promise<string[]> {
   cmdArgs.push("--bind", paths.wssBinDir, SANDBOX_BINDINGS.wssBinDir);
   cmdArgs.push("--setenv", "PATH", SANDBOX_BINDINGS.path);
 
-  // Mount data directories for configured apps (opencode, etc.)
+  // Mount data directories for the active harness
+  const harnessPaths = configService.getHarnessPaths(harnessName);
+  const sandboxConfigDir = `/home/user/${harnessPaths.configDir}`;
+  const sandboxCacheDir = `/home/user/${harnessPaths.cacheDir}`;
   const dataMountArgs = buildDataMountArgs(
     paths.wssConfigDir,
-    SANDBOX_BINDINGS,
+    harnessName,
+    sandboxConfigDir,
+    sandboxCacheDir,
   );
   for (const arg of dataMountArgs) {
     cmdArgs.push(arg);

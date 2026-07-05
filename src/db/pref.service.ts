@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { configService } from "@config/index.js";
+import { HARNESS_OPTIONS } from "@runtime/dependency.enum.js";
 import { logger } from "@lib/logger.js";
 
 export interface Preferences {
@@ -30,7 +31,7 @@ const DEFAULT_PREFERENCES: Omit<
   preferredMcpServer: "local",
   tokenOptimizatorAlgo: ["RAG"],
   toolkit: "bun",
-  harness: "opencode",
+  harness: HARNESS_OPTIONS[0].name,
   harnessPlugins: [],
   ollamaUrl: "http://localhost:11434",
   embeddingModel: "all-minilm:l6-v2",
@@ -143,7 +144,7 @@ export async function getPreferences(): Promise<Preferences> {
       ? JSON.parse(prefs.tokenOptimizatorAlgo)
       : ["RAG"],
     toolkit: prefs.toolkit || "bun",
-    harness: prefs.harness || "opencode",
+    harness: prefs.harness || HARNESS_OPTIONS[0].name,
     harnessPlugins: prefs.harnessPlugins
       ? JSON.parse(prefs.harnessPlugins)
       : [],

@@ -1,11 +1,12 @@
-import { resolve, dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve, join } from "node:path";
 import { readFileSync } from "node:fs";
 import { cwd } from "node:process";
 import { createHash } from "node:crypto";
 
 import type { ArgConfig, Command } from "./arg.config.js";
 import type { PathsConfig } from "./paths.config.js";
+import { HARNESS_PATHS } from "@runtime/dependency.enum.js";
+import type { HarnessPathConfig } from "@runtime/dependency.enum.js";
 
 function loadEnv(targetDir: string): void {
   const envPath = resolve(targetDir, ".env");
@@ -176,6 +177,14 @@ class ConfigService {
 
   get isInitialized(): boolean {
     return this.config !== null;
+  }
+
+  getHarnessPaths(harnessName: string): HarnessPathConfig {
+    const name = harnessName.toLowerCase();
+    return HARNESS_PATHS[name] ?? {
+      configDir: `.config/${name}`,
+      cacheDir: `.local/share/${name}`,
+    };
   }
 }
 
