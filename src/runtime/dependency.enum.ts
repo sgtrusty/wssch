@@ -3,7 +3,8 @@ export enum DepType {
   optimizer = 1,
   proxy = 2,
   mcp = 3,
-  agentic = 4,
+  harness = 4,
+  harnessPlugin = 5,
 }
 
 export enum ToolkitItem {
@@ -24,9 +25,17 @@ export enum McpItem {
   MCP_LUMEN = 2,
 }
 
-export enum AgenticItem {
-  AGENTIC_OPENCODE = 0,
-  AGENTIC_FORGECODE = 1,
+export enum HarnessItem {
+  HARNESS_OPENCODE = 0,
+  HARNESS_FORGECODE = 1,
+  HARNESS_QWENCODE = 2,
+  HARNESS_KILOCODE = 3,
+  HARNESS_GOOSE = 4,
+  HARNESS_CRUSH = 5,
+}
+
+export enum HarnessPluginItem {
+  PLUGIN_OMNIROUTE_AUTH = 0,
 }
 
 export type PrefKey = "ollamaUrl" | "embeddingModel";
@@ -88,18 +97,51 @@ export const MCP_OPTIONS: DepOption<McpItem>[] = [
   },
 ];
 
-export const AGENTIC_OPTIONS: DepOption<AgenticItem>[] = [
+export const HARNESS_OPTIONS: DepOption<HarnessItem>[] = [
   {
-    id: AgenticItem.AGENTIC_OPENCODE,
+    id: HarnessItem.HARNESS_OPENCODE,
     name: "opencode",
     description: "OpenCode agent",
-    type: DepType.agentic,
+    type: DepType.harness,
   },
   {
-    id: AgenticItem.AGENTIC_FORGECODE,
+    id: HarnessItem.HARNESS_FORGECODE,
     name: "forgecode",
     description: "ForgeCode agent",
-    type: DepType.agentic,
+    type: DepType.harness,
+  },
+  {
+    id: HarnessItem.HARNESS_QWENCODE,
+    name: "qwencode",
+    description: "Qwencode agent",
+    type: DepType.harness,
+  },
+  {
+    id: HarnessItem.HARNESS_KILOCODE,
+    name: "kilocode",
+    description: "Kilo Code agent",
+    type: DepType.harness,
+  },
+  {
+    id: HarnessItem.HARNESS_GOOSE,
+    name: "goose",
+    description: "Goose agent",
+    type: DepType.harness,
+  },
+  {
+    id: HarnessItem.HARNESS_CRUSH,
+    name: "crush",
+    description: "Crush agent",
+    type: DepType.harness,
+  },
+];
+
+export const HARNESS_PLUGIN_OPTIONS: DepOption<HarnessPluginItem>[] = [
+  {
+    id: HarnessPluginItem.PLUGIN_OMNIROUTE_AUTH,
+    name: "omniroute-auth",
+    description: "OmniRoute authentication plugin for OpenCode",
+    type: DepType.harnessPlugin,
   },
 ];
 
@@ -111,6 +153,12 @@ export function getOptimizerItem(name: string): OptimizerItem | undefined {
   return OPTIMIZER_OPTIONS.find((o) => o.name === name)?.id;
 }
 
-export function getAgenticItem(name: string): AgenticItem | undefined {
-  return AGENTIC_OPTIONS.find((o) => o.name === name)?.id;
+export function getHarnessItem(name: string): HarnessItem | undefined {
+  return HARNESS_OPTIONS.find((o) => o.name === name)?.id;
+}
+
+export function getHarnessPluginItem(
+  name: string,
+): HarnessPluginItem | undefined {
+  return HARNESS_PLUGIN_OPTIONS.find((o) => o.name === name)?.id;
 }

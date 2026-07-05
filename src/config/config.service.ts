@@ -1,7 +1,8 @@
-import { resolve, dirname } from "node:path";
+import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readFileSync } from "node:fs";
 import { cwd } from "node:process";
+import { createHash } from "node:crypto";
 
 import type { ArgConfig, Command } from "./arg.config.js";
 import type { PathsConfig } from "./paths.config.js";
@@ -61,6 +62,10 @@ interface FullConfig {
 class ConfigService {
   private config: FullConfig | null = null;
 
+  private getProjectChecksum(projectPath: string): string {
+    return createHash("sha256").update(resolve(projectPath)).digest("hex").slice(0, 16);
+  }
+
   init(argv: string[]): void {
     const args = this.parseArgs(argv);
     loadEnv(args.targetDir);
@@ -68,17 +73,18 @@ class ConfigService {
     const wssConfigDir =
       process.env.WSS_CONFIG_DIR || `${process.env.HOME}/.config/wssch`;
     const inSandbox = process.env.WSS_IN_SANDBOX === "true";
+    const projectChecksum = this.getProjectChecksum(args.targetDir);
 
     const paths: PathsConfig = {
       wssConfigDir,
       wssOpencodeConfigDir: inSandbox
         ? `${process.env.HOME}/.config/opencode`
-        : `${wssConfigDir}/opencode/config`,
+        : `${wssConfigDir}/data/config/opencode`,
       wssOpencodeCacheDir: inSandbox
         ? `${process.env.HOME}/.local/share/opencode`
-        : `${wssConfigDir}/opencode/share`,
+        : `${wssConfigDir}/data/share/opencode`,
       wssBinDir: `${wssConfigDir}/bin`,
-      wssDataDir: `${args.targetDir}/.wssdata`,
+      wssDataDir: `${wssConfigDir}/projects/${projectChecksum}`,
     };
 
     this.config = { args, paths };

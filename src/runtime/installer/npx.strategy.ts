@@ -39,7 +39,13 @@ async function extractTarball(
   stripComponents: number = 1,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    const args = ["-xzf", archivePath, "--strip-components=" + stripComponents, "-C", destDir];
+    const args = [
+      "-xzf",
+      archivePath,
+      "--strip-components=" + stripComponents,
+      "-C",
+      destDir,
+    ];
     const proc = spawn("tar", args);
     proc.on("close", (code) =>
       code === 0 ? resolve() : reject(new Error(`tar failed`)),
@@ -103,3 +109,4 @@ async function createExecutableShim(shimPath: string, entryPoint: string) {
   const shimContent = `#!/usr/bin/env node\nimport('${entryPoint}');`;
   await writeFile(shimPath, shimContent, { mode: 0o755 });
 }
+

@@ -2,19 +2,25 @@ import { spawn } from "node:child_process";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { configService } from "@config/index.js";
-
-const DB_NAME = "pref.db";
+import { logger } from "@lib/logger.js";
 
 export interface Preferences {
   preferredMcpServer: string;
   tokenOptimizatorAlgo: string[];
   toolkit: string;
-  agentic: string;
+  harness: string;
+  harnessPlugins: string[];
   ollamaUrl: string;
   embeddingModel: string;
   initializedAt: number;
   initialCheck: boolean;
   updatedAt: number;
+}
+
+const DB_NAME = "config.db";
+
+function getDbPath(): string {
+  return join(configService.paths.wssConfigDir, DB_NAME);
 }
 
 const DEFAULT_PREFERENCES: Omit<
@@ -24,18 +30,15 @@ const DEFAULT_PREFERENCES: Omit<
   preferredMcpServer: "local",
   tokenOptimizatorAlgo: ["RAG"],
   toolkit: "bun",
-  agentic: "opencode",
+  harness: "opencode",
+  harnessPlugins: [],
   ollamaUrl: "http://localhost:11434",
   embeddingModel: "all-minilm:l6-v2",
 };
 
-function getDbPath(): string {
-  return join(configService.paths.wssDataDir, DB_NAME);
-}
-
 export async function initPreferences(): Promise<void> {
   const paths = configService.paths;
-  await mkdir(paths.wssDataDir, { recursive: true });
+  await mkdir(paths.wssConfigDir, { recursive: true });
   const dbPath = getDbPath();
 
   const initSql = `
@@ -140,7 +143,10 @@ export async function getPreferences(): Promise<Preferences> {
       ? JSON.parse(prefs.tokenOptimizatorAlgo)
       : ["RAG"],
     toolkit: prefs.toolkit || "bun",
-    agentic: prefs.agentic || "opencode",
+    harness: prefs.harness || "opencode",
+    harnessPlugins: prefs.harnessPlugins
+      ? JSON.parse(prefs.harnessPlugins)
+      : [],
     ollamaUrl: prefs.ollamaUrl || "http://192.168.1.50:11434",
     embeddingModel: prefs.embeddingModel || "lco-embedding-omni-gguf",
     initializedAt: parseInt(prefs.initializedAt || "0"),
@@ -210,6 +216,7 @@ export async function isPreferencesInitialized(): Promise<boolean> {
       proc.on("close", () => resolve(data));
     });
 
+    logger.info("debug", output.trim());
     return output.trim().length > 0;
   } catch {
     return false;

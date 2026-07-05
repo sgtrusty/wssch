@@ -6,14 +6,20 @@ import { configService } from "@config/index.js";
 import { installerService } from "@runtime/installer/installer.service.js";
 import type { Dependency, DepRef } from "@runtime/runtime.interface.js";
 import { ProxyItem, DepType } from "@runtime/dependency.enum.js";
-import { checkMcpEnabled, writeMcpConfig, getActiveAgent } from "./mcp.util.js";
+import {
+  checkMcpEnabled,
+  writeMcpConfig,
+  getActiveHarness,
+} from "./mcp.util.js";
 
 const SERVER_NAME = "lumen";
 
 export class LumenMcpDependency implements Dependency {
   readonly name = "Lumen MCP";
   readonly binPath: string;
-  readonly suggestedPrefs = { embeddingModel: "ordis/jina-embeddings-v2-base-code" };
+  readonly suggestedPrefs = {
+    embeddingModel: "ordis/jina-embeddings-v2-base-code",
+  };
   private lumenDataDir: string;
 
   constructor() {
@@ -27,12 +33,12 @@ export class LumenMcpDependency implements Dependency {
   }
 
   async isAvailable(): Promise<boolean> {
-    const agent = await getActiveAgent();
+    const agent = await getActiveHarness();
     return checkMcpEnabled(agent, SERVER_NAME);
   }
 
   async install(): Promise<void> {
-    const agent = await getActiveAgent();
+    const agent = await getActiveHarness();
     const paths = configService.paths;
 
     const strategy = installerService.direct(

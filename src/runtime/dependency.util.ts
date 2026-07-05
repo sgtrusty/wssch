@@ -5,17 +5,22 @@ import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { logger } from "@lib/logger.js";
 
-export function detectOs(): "linux" | "darwin" | "windows" {
+export function detectOs<T extends boolean = false>(
+  short?: T,
+): T extends true
+  ? "linux" | "darwin" | "win"
+  : "linux" | "darwin" | "windows" {
   const platform = process.platform;
-  if (platform === "darwin") return "darwin";
-  if (platform === "win32") return "windows";
-  return "linux";
+  if (platform === "darwin") return "darwin" as any;
+  if (platform === "win32") return (short ? "win" : "windows") as any;
+  return "linux" as any;
 }
 
 export function detectArch(): "x86_64" | "aarch64" {
   const arch = process.arch as string;
   if (arch === "x64" || arch === "amd64" || arch === "ia32") return "x86_64";
-  if (arch === "arm64" || arch === "aarch64" || arch === "arm") return "aarch64";
+  if (arch === "arm64" || arch === "aarch64" || arch === "arm")
+    return "aarch64";
   throw new Error(`Unsupported architecture: ${arch}`);
 }
 
@@ -24,7 +29,9 @@ export async function getLibcType(): Promise<"gnu" | "musl"> {
     const proc = spawn("ldd", ["--version"], { stdio: "pipe" });
     const output = await new Promise<string>((resolve, reject) => {
       let data = "";
-      proc.stdout?.on("data", (d) => { data += d; });
+      proc.stdout?.on("data", (d) => {
+        data += d;
+      });
       proc.on("close", () => resolve(data));
       proc.on("error", reject);
     });
@@ -52,7 +59,10 @@ export async function getForgeTarget(): Promise<string> {
   return `${arch}-unknown-linux-${libc}`;
 }
 
-export async function getLatestVersion(repo: string, fallback: string): Promise<string> {
+export async function getLatestVersion(
+  repo: string,
+  fallback: string,
+): Promise<string> {
   try {
     const proc = spawn(
       "curl",
@@ -61,7 +71,9 @@ export async function getLatestVersion(repo: string, fallback: string): Promise<
     );
     const output = await new Promise<string>((resolve, reject) => {
       let data = "";
-      proc.stdout?.on("data", (d) => { data += d; });
+      proc.stdout?.on("data", (d) => {
+        data += d;
+      });
       proc.on("close", (code) => (code === 0 ? resolve(data) : reject()));
       proc.on("error", reject);
     });
@@ -102,6 +114,28 @@ export async function isExecutable(path: string): Promise<boolean> {
   }
 }
 
+async function runWithStderr(
+  cmd: string,
+  args: string[],
+  progressScope: string,
+  errMsg: string,
+): Promise<void> {
+  const proc = spawn(cmd, args, { stdio: "pipe" });
+  let stderr = "";
+  proc.stderr?.on("data", (d) => {
+    stderr += d;
+  });
+  const code = await new Promise<number>((resolve, reject) => {
+    proc.on("close", (code) => resolve(code ?? -1));
+    proc.on("error", reject);
+  });
+  if (code === 0) return;
+  const detail = stderr.trim() || "(no stderr output)";
+  const msg = `${errMsg} (${cmd} exited with ${code}): ${detail}`;
+  logger.fail(progressScope, msg);
+  throw new Error(msg);
+}
+
 export async function downloadUrl(
   url: string,
   destPath: string,
@@ -111,14 +145,12 @@ export async function downloadUrl(
     logger.progress("subdep", progressMsg);
   }
 
-  const curl = spawn("curl", ["-fsSL", url, "-o", destPath]);
-  await new Promise<void>((resolve, reject) => {
-    curl.on("close", (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(`curl exited with ${code}`));
-    });
-    curl.on("error", reject);
-  });
+  await runWithStderr(
+    "curl",
+    ["-fsSL", url, "-o", destPath],
+    "subdep",
+    `curl download failed for ${url}`,
+  );
 }
 
 export async function extractTar(
@@ -126,14 +158,12 @@ export async function extractTar(
   destDir: string,
   filename: string,
 ): Promise<string> {
-  const tar = spawn("tar", ["-xzf", archivePath, "-C", destDir]);
-  await new Promise<void>((resolve, reject) => {
-    tar.on("close", (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(`tar exited with ${code}`));
-    });
-    tar.on("error", reject);
-  });
+  await runWithStderr(
+    "tar",
+    ["-xzf", archivePath, "-C", destDir],
+    "subdep",
+    `tar extract failed for ${archivePath}`,
+  );
   return `${destDir}/${filename}`;
 }
 
@@ -141,14 +171,12 @@ export async function extractZip(
   archivePath: string,
   destDir: string,
 ): Promise<void> {
-  const unzip = spawn("unzip", ["-o", archivePath, "-d", destDir]);
-  await new Promise<void>((resolve, reject) => {
-    unzip.on("close", (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(`unzip exited with ${code}`));
-    });
-    unzip.on("error", reject);
-  });
+  await runWithStderr(
+    "unzip",
+    ["-o", archivePath, "-d", destDir],
+    "subdep",
+    `unzip extract failed for ${archivePath}`,
+  );
 }
 
 export async function moveExtractedBin(
@@ -162,4 +190,3 @@ export async function moveExtractedBin(
   await rm(extractedFolder, { force: true, recursive: true });
   return finalBin;
 }
-

@@ -39,9 +39,6 @@ git clone <repo> ~/tools/wssch
 cd ~/tools/wssch
 make install
 
-# Add to PATH (if not already)
-export PATH="$HOME/.local/bin:$PATH"
-
 # Run in a project directory
 wssch /path/to/your/project
 ```

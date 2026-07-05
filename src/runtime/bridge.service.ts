@@ -4,18 +4,25 @@ import { createMcpLocalAgentDependency } from "./dependency/mcp/localAgent.js";
 import { createRtkDependency } from "./dependency/optimizer/rtk.js";
 import { createOllamaProxyDependency } from "./dependency/proxy/ollamaProxy.js";
 import { createBunDependency } from "./dependency/toolkit/bun.js";
-import { createOpencodeComponent } from "./dependency/agentic/opencode.js";
-import { createForgecodeDependency } from "./dependency/agentic/forgecode.js";
+import { createOpencodeComponent } from "./dependency/harness/opencode.js";
+import { createForgecodeDependency } from "./dependency/harness/forgecode.js";
+import { createQwencodeDependency } from "./dependency/harness/qwencode.js";
+import { createKilocodeDependency } from "./dependency/harness/kilocode.js";
+import { createGooseDependency } from "./dependency/harness/goose.js";
+import { createCrushDependency } from "./dependency/harness/crush.js";
+import { createOmniRouteAuthPlugin } from "./dependency/harness-plugin/omniRouteAuth.js";
 import {
   DepType,
   ToolkitItem,
   OptimizerItem,
   ProxyItem,
   McpItem,
-  AgenticItem,
+  HarnessItem,
+  HarnessPluginItem,
   getMcpItem,
   getOptimizerItem,
-  getAgenticItem,
+  getHarnessItem,
+  getHarnessPluginItem,
 } from "@runtime/dependency.enum.js";
 import { createLocalRagClient } from "./dependency/mcp/localRag.js";
 import { createLumenMcpDependency } from "./dependency/mcp/lumen.js";
@@ -38,9 +45,17 @@ const MCP_DEPS: Record<McpItem, () => Dependency> = {
   [McpItem.MCP_LUMEN]: createLumenMcpDependency,
 };
 
-const AGENTIC_DEPS: Record<AgenticItem, () => Dependency> = {
-  [AgenticItem.AGENTIC_OPENCODE]: createOpencodeComponent,
-  [AgenticItem.AGENTIC_FORGECODE]: createForgecodeDependency,
+const HARNESS_DEPS: Record<HarnessItem, () => Dependency> = {
+  [HarnessItem.HARNESS_OPENCODE]: createOpencodeComponent,
+  [HarnessItem.HARNESS_FORGECODE]: createForgecodeDependency,
+  [HarnessItem.HARNESS_QWENCODE]: createQwencodeDependency,
+  [HarnessItem.HARNESS_KILOCODE]: createKilocodeDependency,
+  [HarnessItem.HARNESS_GOOSE]: createGooseDependency,
+  [HarnessItem.HARNESS_CRUSH]: createCrushDependency,
+};
+
+const HARNESS_PLUGIN_DEPS: Record<HarnessPluginItem, () => Dependency> = {
+  [HarnessPluginItem.PLUGIN_OMNIROUTE_AUTH]: createOmniRouteAuthPlugin,
 };
 
 export class BridgeService {
@@ -88,9 +103,16 @@ export class BridgeService {
       deps.push(mcpDep);
     }
 
-    const agentic = getAgenticItem(prefs.agentic);
-    if (agentic !== undefined && AGENTIC_DEPS[agentic]) {
-      deps.push(AGENTIC_DEPS[agentic]());
+    const harness = getHarnessItem(prefs.harness);
+    if (harness !== undefined && HARNESS_DEPS[harness]) {
+      deps.push(HARNESS_DEPS[harness]());
+    }
+
+    for (const pluginName of prefs.harnessPlugins ?? []) {
+      const plugin = getHarnessPluginItem(pluginName);
+      if (plugin !== undefined && HARNESS_PLUGIN_DEPS[plugin]) {
+        deps.push(HARNESS_PLUGIN_DEPS[plugin]());
+      }
     }
 
     return deps;
@@ -106,8 +128,10 @@ export class BridgeService {
         return PROXY_DEPS[item as ProxyItem]?.();
       case DepType.mcp:
         return MCP_DEPS[item as McpItem]?.();
-      case DepType.agentic:
-        return AGENTIC_DEPS[item as AgenticItem]?.();
+      case DepType.harness:
+        return HARNESS_DEPS[item as HarnessItem]?.();
+      case DepType.harnessPlugin:
+        return HARNESS_PLUGIN_DEPS[item as HarnessPluginItem]?.();
       default:
         return undefined;
     }
@@ -115,4 +139,3 @@ export class BridgeService {
 }
 
 export const bridgeService = new BridgeService();
-

@@ -1,6 +1,13 @@
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
-import { access, constants, readdir, stat, writeFile } from "node:fs/promises";
+import {
+  access,
+  constants,
+  mkdir,
+  readdir,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import { join, dirname, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
@@ -219,6 +226,7 @@ const ALLOWED_BINARIES = new Set([
   "fd",
   "npm",
   "node",
+  "tsc",
 ]);
 
 const SYSTEM_PATHS = [
@@ -241,6 +249,30 @@ const SYSTEM_PATHS = [
   "/etc/ca-certificates",
   "/etc/ld.so.cache",
 ];
+
+export const DATAMOUNT_CONFIG: string[] = ["opencode"];
+export const DATAMOUNT_SHARE: string[] = ["opencode"];
+
+export function buildDataMountArgs(
+  configDir: string,
+  sandboxBindings: { opencodeConfig: string; wssOpencodeCacheDir: string },
+): string[] {
+  const args: string[] = [];
+
+  for (const name of DATAMOUNT_CONFIG) {
+    const src = `${configDir}/data/config/${name}`;
+    const target = sandboxBindings.opencodeConfig;
+    args.push("--bind", src, target);
+  }
+
+  for (const name of DATAMOUNT_SHARE) {
+    const src = `${configDir}/data/share/${name}`;
+    const target = sandboxBindings.wssOpencodeCacheDir;
+    args.push("--bind", src, target);
+  }
+
+  return args;
+}
 
 async function which(cmd: string): Promise<string | null> {
   try {
@@ -330,3 +362,22 @@ export async function mountUsrBinRecursive(
   }
 }
 
+export async function findGitDirs(dir: string, root = dir): Promise<string[]> {
+  const found: string[] = [];
+  let entries;
+  try {
+    entries = await readdir(dir, { withFileTypes: true });
+  } catch {
+    return found;
+  }
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const full = join(dir, entry.name);
+    if (entry.name === ".git") {
+      found.push(full); // don't recurse into it — matches --prune behavior
+      continue;
+    }
+    found.push(...(await findGitDirs(full, root)));
+  }
+  return found;
+}

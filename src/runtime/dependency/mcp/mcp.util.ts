@@ -5,11 +5,11 @@ import { configService } from "@config/index.js";
 import { getPreferences } from "@db/pref.service.js";
 import { logger } from "@lib/logger.js";
 
-export type AgentType = "opencode" | "forgecode";
+export type HarnessType = "opencode" | "forgecode";
 
-export async function getActiveAgent(): Promise<AgentType> {
+export async function getActiveHarness(): Promise<HarnessType> {
   const prefs = await getPreferences();
-  return (prefs.agentic as AgentType) || "opencode";
+  return (prefs.harness as HarnessType) || "opencode";
 }
 
 export interface LumenMcpConfig {
@@ -19,11 +19,15 @@ export interface LumenMcpConfig {
   url?: string;
 }
 
-function getMcpConfigPath(agent: AgentType): string {
+function getMcpConfigPath(agent: HarnessType): string {
   const paths = configService.paths;
 
+  const opencodeDir = join(homedir(), ".config/opencode");
   if (agent === "opencode") {
-    return join(paths.wssOpencodeConfigDir, "opencode.json");
+    if (!existsSync(opencodeDir)) {
+      mkdirSync(opencodeDir, { recursive: true });
+    }
+    return join(opencodeDir, "opencode.json");
   }
 
   const forgeDir = join(homedir(), ".forge");
@@ -34,7 +38,10 @@ function getMcpConfigPath(agent: AgentType): string {
   return join(forgeDir, ".mcp.json");
 }
 
-export function checkMcpEnabled(agent: AgentType, serverName: string): boolean {
+export function checkMcpEnabled(
+  agent: HarnessType,
+  serverName: string,
+): boolean {
   const configPath = getMcpConfigPath(agent);
 
   if (!existsSync(configPath)) {
@@ -62,7 +69,7 @@ export function checkMcpEnabled(agent: AgentType, serverName: string): boolean {
 }
 
 export function writeMcpConfig(
-  agent: AgentType,
+  agent: HarnessType,
   serverName: string,
   serverConfig: LumenMcpConfig,
 ): void {
@@ -102,4 +109,3 @@ export function writeMcpConfig(
   writeFileSync(configPath, JSON.stringify(config, null, 2));
   logger.info("mcp", `Wrote ${agent} MCP config to ${configPath}`);
 }
-

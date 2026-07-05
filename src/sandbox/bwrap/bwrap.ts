@@ -7,7 +7,11 @@ import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { logger } from "@lib/logger.js";
 import { configService, SANDBOX_BINDINGS } from "@config/index.js";
-import { buildUsrBinArgs } from "./bwrap-helper.js";
+import {
+  buildUsrBinArgs,
+  buildDataMountArgs,
+  findGitDirs,
+} from "./bwrap-helper.js";
 
 const BWARP_BIN = "/usr/bin/bwrap";
 
@@ -38,14 +42,12 @@ async function buildBwrapOptions(): Promise<string[]> {
   const args = configService.args;
   cmdArgs.push("--bind", args.targetDir, SANDBOX_BINDINGS.targetDir);
 
-  try {
-    await readdir(`${args.targetDir}/.git`);
-    cmdArgs.push(
-      "--ro-bind",
-      `${args.targetDir}/.git`,
-      `${SANDBOX_BINDINGS.targetDir}/.git`,
-    );
-  } catch {}
+  const gitDirs = await findGitDirs(args.targetDir);
+  for (const gitDir of gitDirs) {
+    const rel = gitDir.slice(args.targetDir.length + 1);
+    cmdArgs.push("--ro-bind", gitDir, `${SANDBOX_BINDINGS.targetDir}/${rel}`);
+  }
+
   cmdArgs.push(
     "--chdir",
     SANDBOX_BINDINGS.targetDir,
@@ -69,15 +71,20 @@ async function buildBwrapOptions(): Promise<string[]> {
   cmdArgs.push("--bind", paths.wssBinDir, SANDBOX_BINDINGS.wssBinDir);
   cmdArgs.push("--setenv", "PATH", SANDBOX_BINDINGS.path);
 
-  cmdArgs.push(
-    "--bind",
-    paths.wssOpencodeConfigDir,
-    SANDBOX_BINDINGS.opencodeConfig,
+  // Mount data directories for configured apps (opencode, etc.)
+  const dataMountArgs = buildDataMountArgs(
+    paths.wssConfigDir,
+    SANDBOX_BINDINGS,
   );
+  for (const arg of dataMountArgs) {
+    cmdArgs.push(arg);
+  }
+
+  // Mount config directory as read-only inside sandbox
   cmdArgs.push(
-    "--bind",
-    paths.wssOpencodeCacheDir,
-    SANDBOX_BINDINGS.wssOpencodeCacheDir,
+    "--ro-bind",
+    paths.wssConfigDir + "/config.db",
+    SANDBOX_BINDINGS.wssConfigDir + "/config.db",
   );
 
   cmdArgs.push(
@@ -160,4 +167,3 @@ export async function isBwrapAvailable(): Promise<boolean> {
     return false;
   }
 }
-
