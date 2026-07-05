@@ -29,6 +29,9 @@ export enum HarnessItem {
   HARNESS_OPENCODE = 0,
   HARNESS_FORGECODE = 1,
   HARNESS_QWENCODE = 2,
+  HARNESS_KILOCODE = 3,
+  HARNESS_GOOSE = 4,
+  HARNESS_CRUSH = 5,
 }
 
 export enum HarnessPluginItem {
@@ -111,6 +114,24 @@ export const HARNESS_OPTIONS: DepOption<HarnessItem>[] = [
     id: HarnessItem.HARNESS_QWENCODE,
     name: "qwencode",
     description: "Qwencode agent",
+    type: DepType.harness,
+  },
+  {
+    id: HarnessItem.HARNESS_KILOCODE,
+    name: "kilocode",
+    description: "Kilo Code agent",
+    type: DepType.harness,
+  },
+  {
+    id: HarnessItem.HARNESS_GOOSE,
+    name: "goose",
+    description: "Goose agent",
+    type: DepType.harness,
+  },
+  {
+    id: HarnessItem.HARNESS_CRUSH,
+    name: "crush",
+    description: "Crush agent",
     type: DepType.harness,
   },
 ];

@@ -114,6 +114,28 @@ export async function isExecutable(path: string): Promise<boolean> {
   }
 }
 
+async function runWithStderr(
+  cmd: string,
+  args: string[],
+  progressScope: string,
+  errMsg: string,
+): Promise<void> {
+  const proc = spawn(cmd, args, { stdio: "pipe" });
+  let stderr = "";
+  proc.stderr?.on("data", (d) => {
+    stderr += d;
+  });
+  const code = await new Promise<number>((resolve, reject) => {
+    proc.on("close", (code) => resolve(code ?? -1));
+    proc.on("error", reject);
+  });
+  if (code === 0) return;
+  const detail = stderr.trim() || "(no stderr output)";
+  const msg = `${errMsg} (${cmd} exited with ${code}): ${detail}`;
+  logger.fail(progressScope, msg);
+  throw new Error(msg);
+}
+
 export async function downloadUrl(
   url: string,
   destPath: string,
@@ -123,14 +145,12 @@ export async function downloadUrl(
     logger.progress("subdep", progressMsg);
   }
 
-  const curl = spawn("curl", ["-fsSL", url, "-o", destPath]);
-  await new Promise<void>((resolve, reject) => {
-    curl.on("close", (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(`curl exited with ${code}`));
-    });
-    curl.on("error", reject);
-  });
+  await runWithStderr(
+    "curl",
+    ["-fsSL", url, "-o", destPath],
+    "subdep",
+    `curl download failed for ${url}`,
+  );
 }
 
 export async function extractTar(
@@ -138,14 +158,12 @@ export async function extractTar(
   destDir: string,
   filename: string,
 ): Promise<string> {
-  const tar = spawn("tar", ["-xzf", archivePath, "-C", destDir]);
-  await new Promise<void>((resolve, reject) => {
-    tar.on("close", (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(`tar exited with ${code}`));
-    });
-    tar.on("error", reject);
-  });
+  await runWithStderr(
+    "tar",
+    ["-xzf", archivePath, "-C", destDir],
+    "subdep",
+    `tar extract failed for ${archivePath}`,
+  );
   return `${destDir}/${filename}`;
 }
 
@@ -153,14 +171,12 @@ export async function extractZip(
   archivePath: string,
   destDir: string,
 ): Promise<void> {
-  const unzip = spawn("unzip", ["-o", archivePath, "-d", destDir]);
-  await new Promise<void>((resolve, reject) => {
-    unzip.on("close", (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(`unzip exited with ${code}`));
-    });
-    unzip.on("error", reject);
-  });
+  await runWithStderr(
+    "unzip",
+    ["-o", archivePath, "-d", destDir],
+    "subdep",
+    `unzip extract failed for ${archivePath}`,
+  );
 }
 
 export async function moveExtractedBin(

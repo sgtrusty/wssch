@@ -7,6 +7,9 @@ import { createBunDependency } from "./dependency/toolkit/bun.js";
 import { createOpencodeComponent } from "./dependency/harness/opencode.js";
 import { createForgecodeDependency } from "./dependency/harness/forgecode.js";
 import { createQwencodeDependency } from "./dependency/harness/qwencode.js";
+import { createKilocodeDependency } from "./dependency/harness/kilocode.js";
+import { createGooseDependency } from "./dependency/harness/goose.js";
+import { createCrushDependency } from "./dependency/harness/crush.js";
 import { createOmniRouteAuthPlugin } from "./dependency/harness-plugin/omniRouteAuth.js";
 import {
   DepType,
@@ -46,6 +49,9 @@ const HARNESS_DEPS: Record<HarnessItem, () => Dependency> = {
   [HarnessItem.HARNESS_OPENCODE]: createOpencodeComponent,
   [HarnessItem.HARNESS_FORGECODE]: createForgecodeDependency,
   [HarnessItem.HARNESS_QWENCODE]: createQwencodeDependency,
+  [HarnessItem.HARNESS_KILOCODE]: createKilocodeDependency,
+  [HarnessItem.HARNESS_GOOSE]: createGooseDependency,
+  [HarnessItem.HARNESS_CRUSH]: createCrushDependency,
 };
 
 const HARNESS_PLUGIN_DEPS: Record<HarnessPluginItem, () => Dependency> = {
