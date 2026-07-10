@@ -1,12 +1,12 @@
 import { join } from "node:path";
 import { mkdir } from "node:fs/promises";
 import { configService } from "@config/index.js";
+import { getActiveHarness } from "@db/pref.service.js";
 import { installerService } from "@runtime/installer/installer.service.js";
 import type { Dependency } from "@runtime/runtime.interface.js";
 import {
   checkMcpEnabled,
   writeMcpConfig,
-  getActiveHarness,
 } from "./mcp.util.js";
 
 const SERVER_NAME = "mcp-local-agent";

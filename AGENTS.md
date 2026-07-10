@@ -140,10 +140,44 @@ Defined in `src/config/paths.config.ts` and managed by `src/config/config.servic
 - No async locks required: `sqlite3` CLI handles file locking, operations are atomic
 
 ### Key Service Files
-- **`src/config/config.service.ts`**: Singleton config service, parses CLI args, loads `.env`
-- **`src/db/pref.service.ts`**: Preferences CRUD operations
+- **`src/config/config.service.ts`**: Singleton config service, parses CLI args, loads `.env`; provides `getHarnessPaths()` returning relative `HarnessPathConfig` per harness type; provides `paths` getter with resolved absolute paths
+- **`src/db/pref.service.ts`**: Preferences CRUD operations; `getPreferences()` returns all prefs with defaults; `updatePreferences()` stores upserts via sqlite3 CLI
 - **`src/db/whitelist.service.ts`**: Whitelist CRUD operations
+- **`src/runtime/dependency.enum.ts`**: Central enum definitions — `HARNESS_OPTIONS`, `HARNESS_PATHS` (relative config/cache dirs per harness), `HARNESS_BINARIES` (binary names per harness), `OPTIMIZER_OPTIONS`, `MCP_OPTIONS`
+- **`src/config/arg.config.ts`**: CLI arg definitions including `--harness <name>` override
+- **`src/ui/prefs.ui.ts`**: Inquirer-based preference editing; `harnessPlugins` prompt conditional on `harness === "opencode"`
+- **`src/runtime/dependency/mcp/mcp.util.ts`**: MCP config utilities; `getActiveHarness()` respects CLI `--harness` override before stored preference
 - **`src/runtime/dependency/mcp/localRag.ts`**: Local RAG client, manages `rag.db`
+- **`src/runtime/bridge.service.ts`**: Uses `configService.args.harnessOverride` before stored preference for bridge service selection
+- **`src/sandbox/bwrap/bwrap.ts`**: Dynamic sandbox mounts using `HARNESS_BINARIES` and `getHarnessPaths()`
+
+---
+
+## Harness Path Architecture
+
+### Centralized Path Config
+Harness paths live in `HARNESS_PATHS` and `HARNESS_BINARIES` in `src/runtime/dependency.enum.ts` as **relative** paths. Callers prepend the appropriate base directory (`configService.paths.wssConfigDir` for config, etc.).
+
+```typescript
+// dependency.enum.ts
+export const HARNESS_PATHS: Record<string, HarnessPathConfig> = {
+  opencode: { configDir: ".config/opencode", cacheDir: ".local/share/opencode" },
+  genkit:   { configDir: ".config/genkit",   cacheDir: ".local/share/genkit"   },
+  // ...
+};
+```
+
+### Harness Override
+CLI arg `--harness <name>` overrides stored preference everywhere:
+1. `configService.getHarnessPaths()` — returns path config for the harness
+2. `mcp.util.ts:getActiveHarness()` — checks `configService.args.harnessOverride` first
+3. `bridge.service.ts` — uses override before stored pref
+4. `bwrap.ts` — mounts sandbox with harness-specific binaries and paths
+
+### Known Bug (Fixed)
+**Symptoms**: `wssch db` crashes with `SyntaxError: "undefined" is not valid JSON`
+**Root Cause**: `promptPreferences()` returned `harnessPlugins: undefined` when the inquirer prompt was hidden (harness ≠ "opencode"). `updatePreferences()` ran `String(undefined)` → `"undefined"` and stored it. Next `getPreferences()` hit `JSON.parse("undefined")` and crashed.
+**Fix**: Added `?? []` fallback in `prefs.ui.ts:134` and `if (value === undefined) continue;` guard in `pref.service.ts:167` to prevent storing `undefined` values.
 
 ---
 
@@ -155,3 +189,5 @@ Defined in `src/config/paths.config.ts` and managed by `src/config/config.servic
 5. Include `.js` extensions in all imports
 6. Use `import type` for type-only imports
 7. Update this file when making significant architectural changes
+8. Use `HARNESS_OPTIONS[HarnessItem.*].name` or `HARNESS_OPTIONS[0].name` instead of hardcoded harness name strings
+9. When values are stored in the DB via sqlite3 CLI, always guard against `undefined` values — `String(undefined)` becomes the literal string `"undefined"` which breaks `JSON.parse` on read

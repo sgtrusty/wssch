@@ -1,4 +1,3 @@
-import { configService } from "@config/index.js";
 import type { Dependency } from "@runtime/runtime.interface.js";
 import { createMcpLocalAgentDependency } from "./dependency/mcp/localAgent.js";
 import { createRtkDependency } from "./dependency/optimizer/rtk.js";
@@ -64,7 +63,7 @@ export class BridgeService {
   }
 
   async getDepsFromPreferences(): Promise<Dependency[]> {
-    const { getPreferences } = await import("@db/pref.service.js");
+    const { getPreferences, getActiveHarness } = await import("@db/pref.service.js");
     const prefs = await getPreferences();
     const deps: Dependency[] = [];
 
@@ -103,7 +102,8 @@ export class BridgeService {
       deps.push(mcpDep);
     }
 
-    const harness = getHarnessItem(prefs.harness);
+    const activeHarness = await getActiveHarness();
+    const harness = getHarnessItem(activeHarness);
     if (harness !== undefined && HARNESS_DEPS[harness]) {
       deps.push(HARNESS_DEPS[harness]());
     }

@@ -2,22 +2,33 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import { logger } from "@lib/logger.js";
+import { configService } from "@config/index.js";
 import type { Dependency } from "@runtime/runtime.interface.js";
 
 const PLUGIN_NAME = "opencode-omniroute-auth";
-const OPENCODE_CONFIG_DIR = join(homedir(), ".config", "opencode");
-const OPENCODE_CONFIG_PATH = join(OPENCODE_CONFIG_DIR, "opencode.json");
+
+function getOpencodeConfigDir(): string {
+  if (process.env.WSS_IN_SANDBOX === "true") {
+    return join(homedir(), ".config", "opencode");
+  }
+  return configService.paths.wssOpencodeConfigDir;
+}
+
+function getOpencodeConfigPath(): string {
+  return join(getOpencodeConfigDir(), "opencode.json");
+}
 
 export class OmniRouteAuthPlugin implements Dependency {
   readonly name = "OmniRoute Auth Plugin";
   readonly binPath = "";
 
   async isAvailable(): Promise<boolean> {
-    if (!existsSync(OPENCODE_CONFIG_PATH)) {
+    const configPath = getOpencodeConfigPath();
+    if (!existsSync(configPath)) {
       return false;
     }
     try {
-      const config = JSON.parse(readFileSync(OPENCODE_CONFIG_PATH, "utf-8"));
+      const config = JSON.parse(readFileSync(configPath, "utf-8"));
       const plugins: string[] = config.plugin ?? [];
       return plugins.includes(PLUGIN_NAME);
     } catch {
@@ -31,14 +42,17 @@ export class OmniRouteAuthPlugin implements Dependency {
       return;
     }
 
-    if (!existsSync(OPENCODE_CONFIG_DIR)) {
-      mkdirSync(OPENCODE_CONFIG_DIR, { recursive: true });
+    const configDir = getOpencodeConfigDir();
+    const configPath = getOpencodeConfigPath();
+
+    if (!existsSync(configDir)) {
+      mkdirSync(configDir, { recursive: true });
     }
 
     let config: Record<string, unknown> = {};
-    if (existsSync(OPENCODE_CONFIG_PATH)) {
+    if (existsSync(configPath)) {
       try {
-        config = JSON.parse(readFileSync(OPENCODE_CONFIG_PATH, "utf-8"));
+        config = JSON.parse(readFileSync(configPath, "utf-8"));
       } catch {}
     }
 
@@ -52,10 +66,10 @@ export class OmniRouteAuthPlugin implements Dependency {
 
     config.plugin = plugins;
 
-    writeFileSync(OPENCODE_CONFIG_PATH, JSON.stringify(config, null, 2));
+    writeFileSync(configPath, JSON.stringify(config, null, 2));
     logger.check(
       "harness-plugin",
-      `Registered ${PLUGIN_NAME} in ${OPENCODE_CONFIG_PATH}`,
+      `Registered ${PLUGIN_NAME} in ${configPath}`,
     );
   }
 }

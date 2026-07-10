@@ -220,7 +220,6 @@ const ALLOWED_BINARIES = new Set([
   "tree",
   "wssch",
   "sqlite3",
-  "opencode",
   "fzf",
   "bat",
   "fd",
@@ -250,31 +249,24 @@ const SYSTEM_PATHS = [
   "/etc/ld.so.cache",
 ];
 
-export const DATAMOUNT_CONFIG: string[] = ["opencode"];
-export const DATAMOUNT_SHARE: string[] = ["opencode"];
-
 export function buildDataMountArgs(
   configDir: string,
-  sandboxBindings: { opencodeConfig: string; wssOpencodeCacheDir: string },
+  harnessName: string,
+  sandboxConfigDir: string,
+  sandboxCacheDir: string,
 ): string[] {
   const args: string[] = [];
 
-  for (const name of DATAMOUNT_CONFIG) {
-    const src = `${configDir}/data/config/${name}`;
-    const target = sandboxBindings.opencodeConfig;
-    args.push("--bind", src, target);
-  }
+  const configSrc = `${configDir}/data/config/${harnessName}`;
+  args.push("--bind", configSrc, sandboxConfigDir);
 
-  for (const name of DATAMOUNT_SHARE) {
-    const src = `${configDir}/data/share/${name}`;
-    const target = sandboxBindings.wssOpencodeCacheDir;
-    args.push("--bind", src, target);
-  }
+  const cacheSrc = `${configDir}/data/share/${harnessName}`;
+  args.push("--bind", cacheSrc, sandboxCacheDir);
 
   return args;
 }
 
-async function which(cmd: string): Promise<string | null> {
+export async function which(cmd: string): Promise<string | null> {
   try {
     const { stdout } = await execAsync(`command -v ${cmd}`, {
       shell: "/bin/sh",

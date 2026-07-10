@@ -1,11 +1,12 @@
-import { resolve, dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve, join } from "node:path";
 import { readFileSync } from "node:fs";
 import { cwd } from "node:process";
 import { createHash } from "node:crypto";
 
 import type { ArgConfig, Command } from "./arg.config.js";
 import type { PathsConfig } from "./paths.config.js";
+import { HARNESS_PATHS } from "@runtime/dependency.enum.js";
+import type { HarnessPathConfig } from "@runtime/dependency.enum.js";
 
 function loadEnv(targetDir: string): void {
   const envPath = resolve(targetDir, ".env");
@@ -45,6 +46,7 @@ Options:
   --no-rag            Disable RAG (MCP)
   --verbose, -v       Verbose output
   --force             Force overwrite
+  --harness <name>    Harness override (opencode, goose, etc.)
   --trust-hours <n>   Whitelist trust hours (default: 24)
   --help, -h           Show this help
 
@@ -97,6 +99,7 @@ class ConfigService {
     let whitelistHours = 24;
     let verbose = false;
     let force = false;
+    let harnessOverride: string | null = process.env.WSS_HARNESS || null;
 
     const processed: string[] = [];
     for (let i = 0; i < args.length; i++) {
@@ -110,6 +113,8 @@ class ConfigService {
         case "deps":
         case "database":
         case "db":
+        case "orchestrate":
+        case "orcs":
           cmd = arg;
           break;
         case "--rtk-bin":
@@ -133,6 +138,12 @@ class ConfigService {
           break;
         case "--force":
           force = true;
+          break;
+        case "--harness":
+          if (next) {
+            harnessOverride = next;
+            i++;
+          }
           break;
         case "--trust-hours":
           if (next) {
@@ -161,6 +172,7 @@ class ConfigService {
       whitelistHours,
       rtkBin,
       debug: process.env.DEBUG === "1",
+      harnessOverride,
     };
   }
 
@@ -176,6 +188,14 @@ class ConfigService {
 
   get isInitialized(): boolean {
     return this.config !== null;
+  }
+
+  getHarnessPaths(harnessName: string): HarnessPathConfig {
+    const name = harnessName.toLowerCase();
+    return HARNESS_PATHS[name] ?? {
+      configDir: `.config/${name}`,
+      cacheDir: `.local/share/${name}`,
+    };
   }
 }
 

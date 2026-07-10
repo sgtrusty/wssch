@@ -1,4 +1,4 @@
-export type Command = "run" | "init" | "status" | "deps" | "database" | "db";
+export type Command = "run" | "init" | "status" | "deps" | "database" | "db" | "orchestrate" | "orcs";
 
 export interface ArgConfig {
   cmd: Command;
@@ -8,6 +8,7 @@ export interface ArgConfig {
   whitelistHours: number;
   rtkBin: string | null;
   debug: boolean;
+  harnessOverride: string | null;
 }
 
 export const DEFAULT_ARGS: ArgConfig = {
@@ -18,4 +19,5 @@ export const DEFAULT_ARGS: ArgConfig = {
   whitelistHours: 24,
   rtkBin: null,
   debug: false,
+  harnessOverride: null,
 };

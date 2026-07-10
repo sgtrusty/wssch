@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import { configService } from "@config/index.js";
+import { HARNESS_OPTIONS } from "@runtime/dependency.enum.js";
 import { logger } from "@lib/logger.js";
 
 export interface Preferences {
@@ -28,9 +29,9 @@ const DEFAULT_PREFERENCES: Omit<
   "initializedAt" | "initialCheck" | "updatedAt"
 > = {
   preferredMcpServer: "local",
-  tokenOptimizatorAlgo: ["RAG"],
+  tokenOptimizatorAlgo: ["RTK"],
   toolkit: "bun",
-  harness: "opencode",
+  harness: HARNESS_OPTIONS[0].name,
   harnessPlugins: [],
   ollamaUrl: "http://localhost:11434",
   embeddingModel: "all-minilm:l6-v2",
@@ -141,9 +142,9 @@ export async function getPreferences(): Promise<Preferences> {
     preferredMcpServer: prefs.preferredMcpServer || "local",
     tokenOptimizatorAlgo: prefs.tokenOptimizatorAlgo
       ? JSON.parse(prefs.tokenOptimizatorAlgo)
-      : ["RAG"],
+      : ["RTK"],
     toolkit: prefs.toolkit || "bun",
-    harness: prefs.harness || "opencode",
+    harness: prefs.harness || HARNESS_OPTIONS[0].name,
     harnessPlugins: prefs.harnessPlugins
       ? JSON.parse(prefs.harnessPlugins)
       : [],
@@ -163,6 +164,7 @@ export async function updatePreferences(
 
   for (const [key, value] of Object.entries(updates)) {
     if (key === "initializedAt") continue;
+    if (value === undefined) continue;
     const val =
       typeof value === "object" ? JSON.stringify(value) : String(value);
 
@@ -196,6 +198,14 @@ export async function updatePreferences(
       proc.on("error", () => resolve());
     });
   } catch {}
+}
+
+export async function getActiveHarness(): Promise<string> {
+  if (configService.args.harnessOverride) {
+    return configService.args.harnessOverride;
+  }
+  const prefs = await getPreferences();
+  return prefs.harness || HARNESS_OPTIONS[0].name;
 }
 
 export async function isPreferencesInitialized(): Promise<boolean> {

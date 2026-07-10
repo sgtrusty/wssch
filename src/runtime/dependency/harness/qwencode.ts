@@ -1,7 +1,7 @@
 import { spawn, ChildProcess } from "node:child_process";
 import { join, dirname } from "node:path";
 import { tmpdir } from "node:os";
-import { mkdir, rm, rename } from "node:fs/promises"; // Added 'rename' for directory migrations
+import { mkdir, rm, rename } from "node:fs/promises";
 import { logger } from "@lib/logger.js";
 import { configService } from "@config/index.js";
 import type { Dependency } from "@runtime/runtime.interface.js";
@@ -20,8 +20,8 @@ const BINARY_NAME = "qwen-code";
 
 export class QwencodeDependency implements Dependency {
   readonly name = "Qwencode";
-  readonly installDir: string; // Track the root of the dependency directory
-  readonly binPath: string; // Track the specific internal binary runner
+  readonly installDir: string;
+  readonly binPath: string;
   private process: ChildProcess | null = null;
   private exitResolve: (() => void) | null = null;
   private exitPromise: Promise<void> | null = null;
