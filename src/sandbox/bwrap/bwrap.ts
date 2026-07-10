@@ -121,6 +121,10 @@ async function buildBwrapOptions(): Promise<string[]> {
 
   cmdArgs.push("--setenv", "DEBUG", args.debug ? "1" : "0");
 
+  if (args.harnessOverride) {
+    cmdArgs.push("--setenv", "WSS_HARNESS", args.harnessOverride);
+  }
+
   cmdArgs.push("--setenv", "WSS_IN_SANDBOX", "true");
 
   cmdArgs.push("--setenv", "TERM", process.env.TERM || SANDBOX_BINDINGS.term);

@@ -1,4 +1,4 @@
-export type Command = "run" | "init" | "status" | "deps" | "database" | "db";
+export type Command = "run" | "init" | "status" | "deps" | "database" | "db" | "orchestrate" | "orcs";
 
 export interface ArgConfig {
   cmd: Command;

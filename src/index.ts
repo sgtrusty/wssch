@@ -101,8 +101,8 @@ export async function runOrchestrator(): Promise<void> {
 
 async function main() {
   const args = process.argv.slice(2);
-  const command = args[0] || "run";
   configService.init(args);
+  const command = configService.args.cmd;
 
   await initPreferencesIfNeeded();
 

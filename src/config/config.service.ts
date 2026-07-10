@@ -99,7 +99,7 @@ class ConfigService {
     let whitelistHours = 24;
     let verbose = false;
     let force = false;
-    let harnessOverride: string | null = null;
+    let harnessOverride: string | null = process.env.WSS_HARNESS || null;
 
     const processed: string[] = [];
     for (let i = 0; i < args.length; i++) {
@@ -113,6 +113,8 @@ class ConfigService {
         case "deps":
         case "database":
         case "db":
+        case "orchestrate":
+        case "orcs":
           cmd = arg;
           break;
         case "--rtk-bin":
