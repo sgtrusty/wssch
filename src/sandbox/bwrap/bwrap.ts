@@ -7,7 +7,7 @@ import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { logger } from "@lib/logger.js";
 import { configService, SANDBOX_BINDINGS } from "@config/index.js";
-import { getPreferences } from "@db/pref.service.js";
+import { getActiveHarness } from "@db/pref.service.js";
 import { HARNESS_OPTIONS, HARNESS_BINARIES } from "@runtime/dependency.enum.js";
 import {
   buildUsrBinArgs,
@@ -43,8 +43,7 @@ async function buildBwrapOptions(): Promise<string[]> {
   }
 
   // Mount the active harness binary if found globally
-  const prefs = await getPreferences();
-  const harnessName = prefs.harness || HARNESS_OPTIONS[0].name;
+  const harnessName = await getActiveHarness();
   const harnessBin = HARNESS_BINARIES[harnessName] || harnessName;
   const harnessBinPath = await which(harnessBin);
   if (harnessBinPath) {

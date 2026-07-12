@@ -69,10 +69,14 @@ export async function runOrchestrator(): Promise<void> {
 
   await ensureDirs();
 
+  const inSandbox = process.env.WSS_IN_SANDBOX === "true";
+  const opencodeDir = inSandbox
+    ? `${process.env.HOME}/.config/opencode`
+    : `${paths.wssConfigDir}/data/config/opencode`;
   scaffold({
     targetDir: args.targetDir,
     wssConfigDir: paths.wssConfigDir,
-    opencodeDir: paths.wssOpencodeConfigDir,
+    opencodeDir,
     wssBinDir: paths.wssBinDir,
   });
 
@@ -132,9 +136,13 @@ async function main() {
 
     initLogger({ prefix: "wssch" });
     await ensureDirs();
+    const inSandbox = process.env.WSS_IN_SANDBOX === "true";
+    const opencodeDir = inSandbox
+      ? `${process.env.HOME}/.config/opencode`
+      : `${paths.wssConfigDir}/data/config/opencode`;
     scaffold({
       targetDir: args.targetDir,
-      opencodeDir: paths.wssOpencodeConfigDir,
+      opencodeDir,
       wssConfigDir: paths.wssConfigDir,
       wssBinDir: paths.wssBinDir,
     });

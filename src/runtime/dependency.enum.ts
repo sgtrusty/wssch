@@ -151,10 +151,13 @@ export interface HarnessPathConfig {
 }
 
 export const HARNESS_PATHS: Record<string, HarnessPathConfig> = {
-  opencode: { configDir: ".config/opencode", cacheDir: ".local/share/opencode" },
+  opencode: {
+    configDir: ".config/opencode",
+    cacheDir: ".local/share/opencode",
+  },
   forgecode: { configDir: ".forge", cacheDir: ".forge/cache" },
   qwencode: { configDir: ".config/qwen", cacheDir: ".local/share/qwen" },
-  kilocode: { configDir: ".config/kilocode", cacheDir: ".local/share/kilocode" },
+  kilocode: { configDir: ".config/kilo", cacheDir: ".local/share/kilo" },
   goose: { configDir: ".config/goose", cacheDir: ".local/share/goose" },
   crush: { configDir: ".config/crush", cacheDir: ".local/share/crush" },
 };

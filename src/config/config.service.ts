@@ -79,12 +79,6 @@ class ConfigService {
 
     const paths: PathsConfig = {
       wssConfigDir,
-      wssOpencodeConfigDir: inSandbox
-        ? `${process.env.HOME}/.config/opencode`
-        : `${wssConfigDir}/data/config/opencode`,
-      wssOpencodeCacheDir: inSandbox
-        ? `${process.env.HOME}/.local/share/opencode`
-        : `${wssConfigDir}/data/share/opencode`,
       wssBinDir: `${wssConfigDir}/bin`,
       wssDataDir: `${wssConfigDir}/projects/${projectChecksum}`,
     };
