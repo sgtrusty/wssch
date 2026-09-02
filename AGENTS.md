@@ -140,16 +140,16 @@ Defined in `src/config/paths.config.ts` and managed by `src/config/config.servic
 - No async locks required: `sqlite3` CLI handles file locking, operations are atomic
 
 ### Key Service Files
-- **`src/config/config.service.ts`**: Singleton config service, parses CLI args, loads `.env`; provides `getHarnessPaths()` returning relative `HarnessPathConfig` per harness type; provides `paths` getter with resolved absolute paths
+- **`src/config/config.service.ts`**: Singleton config service, parses CLI args, loads `.env`; provides `getHarnessPaths()` returning relative `HarnessPathConfig` per harness type; provides `paths` getter with resolved absolute paths. **Single owner of harness/dep config file I/O**: `getHarnessConfigDir()`, `getMcpConfigPath()`, `patchMcpConfig()` (accumulates in-memory patches), `flushPendingConfigs()` (merges `<harness>.base.json` + existing + patches and writes `<harness>.json`, called after installs before harness start). Other modules must delegate to `configService` for config file writes — never write config files from sandbox/deps code
 - **`src/db/pref.service.ts`**: Preferences CRUD operations; `getPreferences()` returns all prefs with defaults; `updatePreferences()` stores upserts via sqlite3 CLI
 - **`src/db/whitelist.service.ts`**: Whitelist CRUD operations
 - **`src/runtime/dependency.enum.ts`**: Central enum definitions — `HARNESS_OPTIONS`, `HARNESS_PATHS` (relative config/cache dirs per harness), `HARNESS_BINARIES` (binary names per harness), `OPTIMIZER_OPTIONS`, `MCP_OPTIONS`
 - **`src/config/arg.config.ts`**: CLI arg definitions including `--harness <name>` override
 - **`src/ui/prefs.ui.ts`**: Inquirer-based preference editing; `harnessPlugins` prompt conditional on `harness === "opencode"`
-- **`src/runtime/dependency/mcp/mcp.util.ts`**: MCP config utilities; `getActiveHarness()` respects CLI `--harness` override before stored preference
+- **`src/runtime/dependency/mcp/mcp.util.ts`**: MCP config helpers; thin delegation to `configService.patchMcpConfig()` / `configService.checkMcpEnabled()`
 - **`src/runtime/dependency/mcp/localRag.ts`**: Local RAG client, manages `rag.db`
 - **`src/runtime/bridge.service.ts`**: Uses `configService.args.harnessOverride` before stored preference for bridge service selection
-- **`src/sandbox/bwrap/bwrap.ts`**: Dynamic sandbox mounts using `HARNESS_BINARIES` and `getHarnessPaths()`
+- **`src/sandbox/bwrap/bwrap.ts`**: Dynamic sandbox mounts using `HARNESS_BINARIES` and `getHarnessPaths()`; does NOT touch config files
 
 ---
 
@@ -170,9 +170,15 @@ export const HARNESS_PATHS: Record<string, HarnessPathConfig> = {
 ### Harness Override
 CLI arg `--harness <name>` overrides stored preference everywhere:
 1. `configService.getHarnessPaths()` — returns path config for the harness
-2. `mcp.util.ts:getActiveHarness()` — checks `configService.args.harnessOverride` first
+2. `mcp.util.ts` / `configService.getHarnessConfigDir()` — checks `configService.args.harnessOverride` via `getActiveHarness()` first
 3. `bridge.service.ts` — uses override before stored pref
 4. `bwrap.ts` — mounts sandbox with harness-specific binaries and paths
+
+### Config Write Accumulation
+Config file writes are orchestrated by `configService` only:
+- `patchMcpConfig()` / `flushPendingConfigs()` implement an accumulate-then-flush model — deps register in-memory patches during install, then the orchestrator flushes after installs (before harness start) by deep-merging `<harness>.base.json` → `<harness>.json` with pending patches.
+- Never write `*.json` config files directly from sandbox/deps code — delegate to `configService`.
+- In-sandbox writes resolve via `WSS_IN_SANDBOX` to `/home/user/<relConfigDir>` (the bwrap bind target); on host they resolve to `<wssConfigDir>/data/config/<harness>`.
 
 ### Known Bug (Fixed)
 **Symptoms**: `wssch db` crashes with `SyntaxError: "undefined" is not valid JSON`

@@ -8,6 +8,7 @@ import { createOrchestrator } from "@runtime/orchest.service.js";
 import {
   initPreferences,
   isPreferencesInitialized,
+  getActiveHarness,
 } from "@db/pref.service.js";
 import { editPreferences } from "@ui/prefs.ui.js";
 
@@ -83,6 +84,9 @@ export async function runOrchestrator(): Promise<void> {
   const installer = await createDepsInstaller();
   await installer.installAll();
 
+  const activeHarness = await getActiveHarness();
+  await configService.flushPendingConfigs(activeHarness);
+
   const orchestrator = await createOrchestrator();
 
   const cleanup = async () => {
@@ -156,6 +160,8 @@ async function main() {
     await ensureDirs();
     const installer = await createDepsInstaller();
     await installer.installAll();
+    const activeHarness = await getActiveHarness();
+    await configService.flushPendingConfigs(activeHarness);
     logger.check("startup", "Dependencies installed.");
     return;
   }
