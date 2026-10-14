@@ -27,7 +27,7 @@ export class OpencodeComponent implements Dependency {
       try {
         logger.progress("component", "Starting OpenCode...");
 
-        this.process = spawn(OPENCODE_BIN, {
+        this.process = spawn(OPENCODE_BIN, ["--standalone"], {
           cwd: args.targetDir,
           stdio: "inherit",
           env: {
