@@ -1,18 +1,28 @@
 import { mkdir, access, constants } from "node:fs/promises";
 import { join } from "node:path";
+import { homedir } from "node:os";
 import { logger } from "@lib/logger.js";
 import { configService } from "@config/index.js";
+import { HARNESS_OPTIONS } from "@runtime/dependency.enum.js";
 
 export async function ensureDirs(): Promise<void> {
   const args = configService.args;
   const paths = configService.paths;
+  const inSandbox = process.env.WSS_IN_SANDBOX === "true";
+
+  const harnessName = configService.args.harnessOverride || HARNESS_OPTIONS[0].name;
+  const { configDir: relConfigDir, cacheDir: relCacheDir } = configService.getHarnessPaths(harnessName);
 
   const dirs = [
     args.targetDir,
     paths.wssBinDir,
-    `${paths.wssOpencodeConfigDir}`,
-    `${paths.wssOpencodeCacheDir}`,
     `${paths.wssDataDir}/mcp`,
+    inSandbox
+      ? join(homedir(), relConfigDir)
+      : join(paths.wssConfigDir, "data", "config", harnessName),
+    inSandbox
+      ? join(homedir(), relCacheDir)
+      : join(paths.wssConfigDir, "data", "share", harnessName),
     `${paths.wssConfigDir}/rtk`,
   ];
 

@@ -83,6 +83,39 @@ export async function getLatestVersion(
   return fallback;
 }
 
+export async function getLatestMatchingVersion(
+  repo: string,
+  tagPrefix: string,
+  fallback: string,
+): Promise<string> {
+  try {
+    const proc = spawn(
+      "curl",
+      [
+        "-fsSL",
+        `https://api.github.com/repos/${repo}/releases?per_page=20`,
+      ],
+      { stdio: "pipe" },
+    );
+    const output = await new Promise<string>((resolve, reject) => {
+      let data = "";
+      proc.stdout?.on("data", (d) => {
+        data += d;
+      });
+      proc.on("close", (code) => (code === 0 ? resolve(data) : reject()));
+      proc.on("error", reject);
+    });
+    const tagRegex = new RegExp(`"tag_name":\\s*"(${tagPrefix}[^"]*)"`, "g");
+    const tags: string[] = [];
+    let m: RegExpExecArray | null;
+    while ((m = tagRegex.exec(output)) !== null) {
+      tags.push(m[1]);
+    }
+    if (tags.length > 0) return tags[0];
+  } catch {}
+  return fallback;
+}
+
 export async function safeInstallBin(
   downloadedPath: string,
   destPath: string,

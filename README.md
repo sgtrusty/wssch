@@ -18,7 +18,7 @@ It's designed as a workspace aggregator — a single entry point that brings tog
 
 - **Runtime**: TypeScript / Node.js (>=20) + Bun
 - **Supported Sandboxes**: bwrap (bubblewrap)
-- **Supported AI Assistants**: OpenCode, ForgeCode
+- **Supported AI Assistants**: OpenCode, ForgeCode, Qwencode, KiloCode, Goose, Crush, Antigravity CLI
 - **Supported MCPs**: Shinpr MCP LocalDB, Shinpr MCP LocalRAG, Lumen MCP
 - **Supported Token Algorithms**: RTK (context compression)
 

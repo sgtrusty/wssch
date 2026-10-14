@@ -8,6 +8,7 @@ import { createOrchestrator } from "@runtime/orchest.service.js";
 import {
   initPreferences,
   isPreferencesInitialized,
+  getActiveHarness,
 } from "@db/pref.service.js";
 import { editPreferences } from "@ui/prefs.ui.js";
 
@@ -69,15 +70,22 @@ export async function runOrchestrator(): Promise<void> {
 
   await ensureDirs();
 
+  const inSandbox = process.env.WSS_IN_SANDBOX === "true";
+  const opencodeDir = inSandbox
+    ? `${process.env.HOME}/.config/opencode`
+    : `${paths.wssConfigDir}/data/config/opencode`;
   scaffold({
     targetDir: args.targetDir,
     wssConfigDir: paths.wssConfigDir,
-    opencodeDir: paths.wssOpencodeConfigDir,
+    opencodeDir,
     wssBinDir: paths.wssBinDir,
   });
 
   const installer = await createDepsInstaller();
   await installer.installAll();
+
+  const activeHarness = await getActiveHarness();
+  await configService.flushPendingConfigs(activeHarness);
 
   const orchestrator = await createOrchestrator();
 
@@ -132,9 +140,13 @@ async function main() {
 
     initLogger({ prefix: "wssch" });
     await ensureDirs();
+    const inSandbox = process.env.WSS_IN_SANDBOX === "true";
+    const opencodeDir = inSandbox
+      ? `${process.env.HOME}/.config/opencode`
+      : `${paths.wssConfigDir}/data/config/opencode`;
     scaffold({
       targetDir: args.targetDir,
-      opencodeDir: paths.wssOpencodeConfigDir,
+      opencodeDir,
       wssConfigDir: paths.wssConfigDir,
       wssBinDir: paths.wssBinDir,
     });
@@ -148,6 +160,8 @@ async function main() {
     await ensureDirs();
     const installer = await createDepsInstaller();
     await installer.installAll();
+    const activeHarness = await getActiveHarness();
+    await configService.flushPendingConfigs(activeHarness);
     logger.check("startup", "Dependencies installed.");
     return;
   }

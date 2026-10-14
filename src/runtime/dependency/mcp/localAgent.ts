@@ -6,7 +6,7 @@ import { installerService } from "@runtime/installer/installer.service.js";
 import type { Dependency } from "@runtime/runtime.interface.js";
 import {
   checkMcpEnabled,
-  writeMcpConfig,
+  patchMcpConfig,
 } from "./mcp.util.js";
 
 const SERVER_NAME = "mcp-local-agent";
@@ -46,7 +46,7 @@ export class McpLocalAgentDependency implements Dependency {
     const mcpShinprDir = join(paths.wssDataDir, "mcp/shinpr");
     await mkdir(mcpShinprDir, { recursive: true });
 
-    writeMcpConfig(agent, SERVER_NAME, {
+    patchMcpConfig(agent, SERVER_NAME, {
       command: this.binPath,
       args: agent === "forgecode" ? ["stdio"] : undefined,
       env: {

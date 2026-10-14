@@ -3,8 +3,7 @@ import { bridgeService } from "@runtime/bridge.service.js";
 import { Dependency } from "@runtime/runtime.interface.js";
 import { spawn } from "node:child_process";
 import { configService } from "@config/config.service.js";
-import { getPreferences } from "@db/pref.service.js";
-import { HARNESS_OPTIONS } from "@runtime/dependency.enum.js";
+import { getActiveHarness } from "@db/pref.service.js";
 
 export class Orchestrator {
   private components: Dependency[] = [];
@@ -32,8 +31,7 @@ export class Orchestrator {
       await this.startComponent(comp);
     }
 
-    const prefs = await getPreferences();
-    const mainHarness = prefs.harness || HARNESS_OPTIONS[0].name;
+    const mainHarness = await getActiveHarness();
     const mainComp = this.components.find(
       (c) => c.name.toLowerCase() === mainHarness.toLowerCase(),
     );

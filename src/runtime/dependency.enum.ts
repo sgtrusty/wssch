@@ -32,6 +32,8 @@ export enum HarnessItem {
   HARNESS_KILOCODE = 3,
   HARNESS_GOOSE = 4,
   HARNESS_CRUSH = 5,
+  HARNESS_ANTIGRAVITY = 6,
+  HARNESS_CLAUDE = 7,
 }
 
 export enum HarnessPluginItem {
@@ -134,6 +136,18 @@ export const HARNESS_OPTIONS: DepOption<HarnessItem>[] = [
     description: "Crush agent",
     type: DepType.harness,
   },
+  {
+    id: HarnessItem.HARNESS_ANTIGRAVITY,
+    name: "antigravity",
+    description: "Antigravity CLI agent (Google)",
+    type: DepType.harness,
+  },
+  {
+    id: HarnessItem.HARNESS_CLAUDE,
+    name: "claude",
+    description: "Claude Code agent (Anthropic)",
+    type: DepType.harness,
+  },
 ];
 
 export const HARNESS_PLUGIN_OPTIONS: DepOption<HarnessPluginItem>[] = [
@@ -151,12 +165,23 @@ export interface HarnessPathConfig {
 }
 
 export const HARNESS_PATHS: Record<string, HarnessPathConfig> = {
-  opencode: { configDir: ".config/opencode", cacheDir: ".local/share/opencode" },
+  opencode: {
+    configDir: ".config/opencode",
+    cacheDir: ".local/share/opencode",
+  },
   forgecode: { configDir: ".forge", cacheDir: ".forge/cache" },
   qwencode: { configDir: ".config/qwen", cacheDir: ".local/share/qwen" },
-  kilocode: { configDir: ".config/kilocode", cacheDir: ".local/share/kilocode" },
+  kilocode: { configDir: ".config/kilo", cacheDir: ".local/share/kilo" },
   goose: { configDir: ".config/goose", cacheDir: ".local/share/goose" },
   crush: { configDir: ".config/crush", cacheDir: ".local/share/crush" },
+  antigravity: {
+    configDir: ".config/antigravity",
+    cacheDir: ".local/share/antigravity",
+  },
+  claude: {
+    configDir: ".claude",
+    cacheDir: ".claude/projects",
+  },
 };
 
 export const HARNESS_BINARIES: Record<string, string> = {
@@ -166,6 +191,8 @@ export const HARNESS_BINARIES: Record<string, string> = {
   kilocode: "kilo",
   goose: "goose",
   crush: "crush",
+  antigravity: "agy",
+  claude: "claude",
 };
 
 export function getMcpItem(name: string): McpItem | undefined {

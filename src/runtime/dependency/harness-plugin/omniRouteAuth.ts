@@ -8,10 +8,11 @@ import type { Dependency } from "@runtime/runtime.interface.js";
 const PLUGIN_NAME = "opencode-omniroute-auth";
 
 function getOpencodeConfigDir(): string {
+  const { configDir } = configService.getHarnessPaths("opencode");
   if (process.env.WSS_IN_SANDBOX === "true") {
-    return join(homedir(), ".config", "opencode");
+    return join(homedir(), configDir);
   }
-  return configService.paths.wssOpencodeConfigDir;
+  return join(configService.paths.wssConfigDir, "data", "config", "opencode");
 }
 
 function getOpencodeConfigPath(): string {

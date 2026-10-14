@@ -9,7 +9,7 @@ import type { Dependency, DepRef } from "@runtime/runtime.interface.js";
 import { ProxyItem, DepType } from "@runtime/dependency.enum.js";
 import {
   checkMcpEnabled,
-  writeMcpConfig,
+  patchMcpConfig,
 } from "./mcp.util.js";
 
 const SERVER_NAME = "lumen";
@@ -50,7 +50,7 @@ export class LumenMcpDependency implements Dependency {
 
     await mkdir(this.lumenDataDir, { recursive: true });
 
-    writeMcpConfig(agent, SERVER_NAME, {
+    patchMcpConfig(agent, SERVER_NAME, {
       command: this.binPath,
       args: ["stdio"],
       env: {
