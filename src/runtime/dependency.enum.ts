@@ -33,6 +33,7 @@ export enum HarnessItem {
   HARNESS_GOOSE = 4,
   HARNESS_CRUSH = 5,
   HARNESS_ANTIGRAVITY = 6,
+  HARNESS_CLAUDE = 7,
 }
 
 export enum HarnessPluginItem {
@@ -141,6 +142,12 @@ export const HARNESS_OPTIONS: DepOption<HarnessItem>[] = [
     description: "Antigravity CLI agent (Google)",
     type: DepType.harness,
   },
+  {
+    id: HarnessItem.HARNESS_CLAUDE,
+    name: "claude",
+    description: "Claude Code agent (Anthropic)",
+    type: DepType.harness,
+  },
 ];
 
 export const HARNESS_PLUGIN_OPTIONS: DepOption<HarnessPluginItem>[] = [
@@ -171,6 +178,10 @@ export const HARNESS_PATHS: Record<string, HarnessPathConfig> = {
     configDir: ".config/antigravity",
     cacheDir: ".local/share/antigravity",
   },
+  claude: {
+    configDir: ".claude",
+    cacheDir: ".claude/projects",
+  },
 };
 
 export const HARNESS_BINARIES: Record<string, string> = {
@@ -181,6 +192,7 @@ export const HARNESS_BINARIES: Record<string, string> = {
   goose: "goose",
   crush: "crush",
   antigravity: "agy",
+  claude: "claude",
 };
 
 export function getMcpItem(name: string): McpItem | undefined {

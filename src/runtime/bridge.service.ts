@@ -10,6 +10,7 @@ import { createKilocodeDependency } from "./dependency/harness/kilocode.js";
 import { createGooseDependency } from "./dependency/harness/goose.js";
 import { createCrushDependency } from "./dependency/harness/crush.js";
 import { createAntigravityDependency } from "./dependency/harness/antigravity.js";
+import { createClaudeDependency } from "./dependency/harness/claude.js";
 import { createOmniRouteAuthPlugin } from "./dependency/harness-plugin/omniRouteAuth.js";
 import {
   DepType,
@@ -53,6 +54,7 @@ const HARNESS_DEPS: Record<HarnessItem, () => Dependency> = {
   [HarnessItem.HARNESS_GOOSE]: createGooseDependency,
   [HarnessItem.HARNESS_CRUSH]: createCrushDependency,
   [HarnessItem.HARNESS_ANTIGRAVITY]: createAntigravityDependency,
+  [HarnessItem.HARNESS_CLAUDE]: createClaudeDependency,
 };
 
 const HARNESS_PLUGIN_DEPS: Record<HarnessPluginItem, () => Dependency> = {
