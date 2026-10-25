@@ -1,13 +1,6 @@
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
-import {
-  access,
-  constants,
-  mkdir,
-  readdir,
-  stat,
-  writeFile,
-} from "node:fs/promises";
+import { access, constants, mkdir, readdir, stat, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
@@ -224,8 +217,13 @@ const ALLOWED_BINARIES = new Set([
   "bat",
   "fd",
   "npm",
-  "node",
   "tsc",
+  "flatc",
+  "find",
+  "gcc",
+  "g++",
+  "premake",
+  "make",
 ]);
 
 const SYSTEM_PATHS = [
