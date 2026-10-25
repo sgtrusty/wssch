@@ -245,16 +245,10 @@ export function deleteProfile(id: string): boolean {
   return true;
 }
 
-const LEGACY_ITEMS = [
-  "config.db",
-  "rag.db",
-  "bin",
-  "data",
-  "rtk",
-  "config",
-  "share",
-  "projects",
-];
+// State that is shared across profiles and must stay at the global root.
+const LEGACY_SHARED_ITEMS = ["bin", "projects", "rtk"];
+// State that is isolated per profile and migrates into profiles/<id>/.
+const LEGACY_PROFILE_ITEMS = ["config.db", "rag.db", "data"];
 
 function migrateIfNeeded(): void {
   const regPath = registryPath();
@@ -266,9 +260,10 @@ function migrateIfNeeded(): void {
     return;
   }
 
-  const hasLegacy = LEGACY_ITEMS.some((item) =>
-    safeExists(join(GLOBAL_DIR, item)),
-  );
+  const hasLegacy = [
+    ...LEGACY_PROFILE_ITEMS,
+    ...LEGACY_SHARED_ITEMS,
+  ].some((item) => safeExists(join(GLOBAL_DIR, item)));
 
   mkdirSync(root, { recursive: true });
   const id = "1";
@@ -276,7 +271,9 @@ function migrateIfNeeded(): void {
   mkdirSync(dir, { recursive: true });
 
   if (hasLegacy) {
-    for (const item of LEGACY_ITEMS) {
+    // Only the per-profile "data" state (config.db, rag.db, data/) moves into
+    // the profile dir. bin/, projects/, and rtk/ remain shared at the root.
+    for (const item of LEGACY_PROFILE_ITEMS) {
       const src = join(GLOBAL_DIR, item);
       if (safeExists(src)) {
         try {

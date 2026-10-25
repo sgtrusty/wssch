@@ -114,7 +114,7 @@ async function buildBwrapOptions(): Promise<string[]> {
 
   cmdArgs.push(
     "--bind",
-    `${paths.wssConfigDir}/rtk`,
+    paths.wssRtkDir,
     SANDBOX_BINDINGS.rtkConfigDir,
   );
 

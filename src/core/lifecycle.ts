@@ -16,6 +16,8 @@ export async function ensureDirs(): Promise<void> {
   const dirs = [
     args.targetDir,
     paths.wssBinDir,
+    paths.wssProjectsDir,
+    paths.wssRtkDir,
     `${paths.wssDataDir}/mcp`,
     inSandbox
       ? join(homedir(), relConfigDir)
@@ -23,7 +25,6 @@ export async function ensureDirs(): Promise<void> {
     inSandbox
       ? join(homedir(), relCacheDir)
       : join(paths.wssConfigDir, "data", "share", harnessName),
-    `${paths.wssConfigDir}/rtk`,
   ];
 
   for (const dir of dirs) {

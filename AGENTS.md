@@ -189,27 +189,32 @@ Config file writes are orchestrated by `configService` only:
 
 ## Profiles
 
-Each invocation runs inside an **active profile** — an isolated workspace directory. All state that used to live directly under `~/.config/wssch` (the `config.db` preferences/whitelist DB, `rag.db`, `bin/`, `data/`, `rtk/`, harness `data/config` + `data/share`) now lives under `~/.config/wssch/profiles/<id>/`.
+Each invocation runs inside an **active profile** — an isolated workspace directory. Most state that used to live directly under `~/.config/wssch` still does, but the **profiled "data" folders** (mcp, harness `config`/`share`, plus `config.db`/`rag.db`) are now isolated under `~/.config/wssch/profiles/<id>/`. `bin/`, `projects/`, and `rtk/` are intentionally **shared** across all profiles at the global root.
 
 ### Layout
 ```
-~/.config/wssch/            (wssGlobalDir — global, never per-profile)
+~/.config/wssch/            (wssGlobalDir — global, shared across profiles)
+  bin/                     SHARED downloaded binaries (wssBinDir)
+  projects/                SHARED per-project store, keyed by path checksum (wssProjectsDir)
+  rtk/                     SHARED RTK config (wssRtkDir)
   profiles.json            global registry: { profiles, lastUsed }
   profiles/
-    1/                     default profile dir
+    1/                     default profile dir (wssConfigDir)
       config.db            preferences + whitelist (per profile)
-      rag.db
-      bin/
-      data/                wssDataDir (mcp/, config/<harness>/, share/<harness>/)
-      rtk/
+      rag.db               per profile
+      data/                wssDataDir — the profiled "data" folders:
+        mcp/               mcp runtime data
+        config/<harness>/  harness config
+        share/<harness>/   harness cache
     2/ ...                 additional profiles
 ```
 
 ### Key facts
+- **Shared vs profiled**: `bin/`, `projects/`, and `rtk/` are global and shared by every profile. Only the `data/` folders (mcp, harness `config`, harness `share`) plus `config.db`/`rag.db` are isolated per profile under `profiles/<id>/`.
 - **Global registry** `profiles.json` is owned by `profile.service.ts` (NOT the per-profile DB). It stores `profiles: Profile[]` (`id`, `name`, `isDefault`, `createdAt`, `description`) and `lastUsed`.
-- **`configService.init()`** resolves the active profile BEFORE building paths: `--profile <id|name>` (auto-creates if missing) → `lastUsed` → `isDefault`. It sets `paths.wssConfigDir` = `<wssGlobalDir>/profiles/<id>`, plus `wssBinDir`, `wssDataDir`, and `profileId`. `paths.wssGlobalDir` always points at the root.
+- **`configService.init()`** resolves the active profile BEFORE building paths: `--profile <id|name>` (auto-creates if missing) → `lastUsed` → `isDefault`. It sets `paths.wssConfigDir` = `<wssGlobalDir>/profiles/<id>` (holds `config.db`, `rag.db`, `data/`), `paths.wssDataDir` = `<wssConfigDir>/data`, and the shared `wssBinDir`/`wssProjectsDir`/`wssRtkDir` at the global root. `paths.wssGlobalDir` always points at the root.
 - **Last used & default**: `profileService.setLastUsed(id)` is called by `configService.init` on every host run. `setDefault(id)` flags a profile. Resolution precedence: explicit `--profile` > `lastUsed` > `isDefault`.
-- **Auto-create**: if `profiles.json` is absent, `profileService` creates profile `1` (name `default`, `isDefault`). **Legacy migration**: if the root already holds `config.db`/`rag.db`/`bin`/`data`/`rtk`/`config`/`share`/`projects`, those are moved into `profiles/1` so existing installs keep their data.
+- **Auto-create**: if `profiles.json` is absent, `profileService` creates profile `1` (name `default`, `isDefault`). **Legacy migration**: only the per-profile state (`config.db`, `rag.db`, `data/`) is moved into `profiles/1`; `bin/`, `projects/`, `rtk/` stay shared at the root.
 - **Sandbox safety**: inside the sandbox (`WSS_IN_SANDBOX=true`), `configService.init` skips registry IO entirely — the host already bound the chosen profile dir to `/home/user/.config/wssch`, so `wssConfigDir` is just `${HOME}/.config/wssch`. `profileService` returns an in-memory single "sandbox" profile and never writes `profiles.json`. `bwrap.ts` forwards `WSS_PROFILE` so the active id is visible inside the sandbox.
 - **CLI**: `wssch profile` (or `profiles`) opens the interactive manager; `wssch profile list|create|use <id|name>|set-default <id|name>|delete <id|name>` for scripting; `wssch --profile <id|name> run ...` selects/creates a profile for a run. `src/ui/profile.ui.ts` holds the interactive UI.
 

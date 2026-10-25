@@ -2,6 +2,7 @@ import { resolve, join, dirname } from "node:path";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { cwd } from "node:process";
+import { createHash } from "node:crypto";
 
 import { logger } from "@lib/logger.js";
 import type { ArgConfig, Command } from "./arg.config.js";
@@ -9,6 +10,7 @@ import type { PathsConfig } from "./paths.config.js";
 import { HARNESS_OPTIONS, HarnessItem, HARNESS_PATHS } from "@runtime/dependency.enum.js";
 import type { HarnessPathConfig } from "@runtime/dependency.enum.js";
 import { profileService, PROFILES_DIR } from "./profile.service.js";
+import { SANDBOX_BINDINGS } from "./sandbox.config.js";
 
 export interface LumenMcpConfig {
   command?: string;
@@ -81,6 +83,10 @@ class ConfigService {
   private config: FullConfig | null = null;
   private pendingPatches = new Map<string, Record<string, unknown>>();
 
+  private getProjectChecksum(projectPath: string): string {
+    return createHash("sha256").update(resolve(projectPath)).digest("hex").slice(0, 16);
+  }
+
   init(argv: string[]): void {
     const args = this.parseArgs(argv);
     loadEnv(args.targetDir);
@@ -88,28 +94,37 @@ class ConfigService {
     const inSandbox = process.env.WSS_IN_SANDBOX === "true";
     const wssGlobalDir =
       process.env.WSS_CONFIG_DIR || `${process.env.HOME}/.config/wssch`;
+    const projectChecksum = this.getProjectChecksum(args.targetDir);
 
-    let wssConfigDir: string;
+    // Shared, profile-independent state.
+    const wssBinDir = `${wssGlobalDir}/bin`;
+    const wssProjectsDir = `${wssGlobalDir}/projects/${projectChecksum}`;
+    const wssRtkDir = `${wssGlobalDir}/rtk`;
+
+    // Per-profile state (the isolated "data" folders).
+    let profileDir: string;
     let profileId: string;
 
     if (inSandbox) {
       // Inside the sandbox the chosen profile dir is already mounted as the
       // wssch root, so profiles are resolved without touching the registry.
-      wssConfigDir = `${process.env.HOME}/.config/wssch`;
+      profileDir = SANDBOX_BINDINGS.wssConfigDir;
       profileId = process.env.WSS_PROFILE || "sandbox";
     } else {
       profileService.setGlobalDir(wssGlobalDir);
       const active = profileService.resolveActive(args.profile);
       profileService.setLastUsed(active.id);
-      wssConfigDir = `${wssGlobalDir}/${PROFILES_DIR}/${active.id}`;
       profileId = active.id;
+      profileDir = `${wssGlobalDir}/${PROFILES_DIR}/${active.id}`;
     }
 
     const paths: PathsConfig = {
       wssGlobalDir,
-      wssConfigDir,
-      wssBinDir: `${wssConfigDir}/bin`,
-      wssDataDir: `${wssConfigDir}/data`,
+      wssConfigDir: profileDir,
+      wssBinDir,
+      wssDataDir: `${profileDir}/data`,
+      wssProjectsDir,
+      wssRtkDir,
       profileId,
     };
 
