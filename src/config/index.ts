@@ -4,3 +4,5 @@ export type { SandboxBindings } from "./sandbox.config.js";
 export { SANDBOX_BINDINGS } from "./sandbox.config.js";
 
 export { configService } from "./config.service.js";
+export { profileService } from "./profile.service.js";
+export type { Profile, ProfileRegistry } from "./profile.service.js";

@@ -1,6 +1,6 @@
 import { scaffold } from "@commands/scaffold.js";
 import { logger, initLogger } from "@lib/logger.js";
-import { configService } from "@config/index.js";
+import { configService, profileService } from "@config/index.js";
 import { preflight, ensureDirs } from "@core/lifecycle.js";
 import { isBwrapAvailable, spawnWithSandbox } from "@sandbox/bwrap/bwrap.js";
 import { createDepsInstaller } from "@runtime/dependency.service.js";
@@ -11,6 +11,7 @@ import {
   getActiveHarness,
 } from "@db/pref.service.js";
 import { editPreferences } from "@ui/prefs.ui.js";
+import { manageProfilesUI, createProfileUI } from "@ui/profile.ui.js";
 
 async function initPreferencesIfNeeded(): Promise<void> {
   const initialized = await isPreferencesInitialized();
@@ -63,6 +64,7 @@ export async function runOrchestrator(): Promise<void> {
   logger.info("startup", "wssch CLI starting...");
   logger.info("startup", `Project: ${args.targetDir}`);
   logger.info("startup", `Config: ${paths.wssConfigDir}`);
+  logger.info("startup", `Active profile: ${paths.profileId}`);
   logger.info(
     "startup",
     `In Sandbox: ${process.env.WSS_IN_SANDBOX === "true"}`,
@@ -163,6 +165,77 @@ async function main() {
     const activeHarness = await getActiveHarness();
     await configService.flushPendingConfigs(activeHarness);
     logger.check("startup", "Dependencies installed.");
+    return;
+  }
+
+  if (command === "profile" || command === "profiles") {
+    initLogger({ prefix: "wssch" });
+    await ensureDirs();
+    const profileArgs = configService.args;
+    const sub = profileArgs.profileSub;
+
+    if (!sub) {
+      await manageProfilesUI();
+      return;
+    }
+
+    switch (sub) {
+      case "list":
+        for (const p of profileService.listProfiles()) {
+          const reg = profileService.getRegistry();
+          const flags =
+            (p.isDefault ? " [default]" : "") +
+            (reg.lastUsed === p.id ? " [last used]" : "");
+          logger.info("profile", `${p.id}  ${p.name}${flags}`);
+        }
+        break;
+      case "create":
+        await createProfileUI();
+        break;
+      case "use":
+      case "set-default": {
+        const idOrName = profileArgs.profileSubArgs[0];
+        if (!idOrName) {
+          logger.fail("profile", `Missing profile id/name for "${sub}"`);
+          process.exit(1);
+        }
+        const p = profileService.getProfile(idOrName);
+        if (!p) {
+          logger.fail("profile", `Profile not found: ${idOrName}`);
+          process.exit(1);
+        }
+        if (sub === "use") {
+          profileService.setLastUsed(p.id);
+          logger.check("profile", `Active profile set to ${p.name}`);
+        } else {
+          profileService.setDefault(p.id);
+          logger.check("profile", `Default profile set to ${p.name}`);
+        }
+        break;
+      }
+      case "delete": {
+        const idOrName = profileArgs.profileSubArgs[0];
+        if (!idOrName) {
+          logger.fail("profile", "Missing profile id/name for delete");
+          process.exit(1);
+        }
+        const p = profileService.getProfile(idOrName);
+        if (!p) {
+          logger.fail("profile", `Profile not found: ${idOrName}`);
+          process.exit(1);
+        }
+        if (profileService.deleteProfile(p.id)) {
+          logger.check("profile", `Deleted profile ${p.id}`);
+        } else {
+          logger.fail("profile", "Could not delete profile");
+        }
+        break;
+      }
+      default:
+        logger.warn("profile", `Unknown subcommand: ${sub}`);
+        await manageProfilesUI();
+        break;
+    }
     return;
   }
 

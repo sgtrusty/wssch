@@ -2,13 +2,13 @@ import { resolve, join, dirname } from "node:path";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { cwd } from "node:process";
-import { createHash } from "node:crypto";
 
 import { logger } from "@lib/logger.js";
 import type { ArgConfig, Command } from "./arg.config.js";
 import type { PathsConfig } from "./paths.config.js";
 import { HARNESS_OPTIONS, HarnessItem, HARNESS_PATHS } from "@runtime/dependency.enum.js";
 import type { HarnessPathConfig } from "@runtime/dependency.enum.js";
+import { profileService, PROFILES_DIR } from "./profile.service.js";
 
 export interface LumenMcpConfig {
   command?: string;
@@ -57,11 +57,18 @@ Options:
   --force             Force overwrite
   --harness <name>    Harness override (opencode, goose, etc.)
   --trust-hours <n>   Whitelist trust hours (default: 24)
+  --profile <id|name> Select a profile (auto-creates if missing)
   --help, -h           Show this help
+
+Commands:
+  profile, profiles   Manage profiles (create, list, set default, delete)
 
 Examples:
   wssch run
   wssch run /path/to/project
+  wssch --profile work run
+  wssch profile
+  wssch profile create
   wssch init --no-rtk`);
 }
 
@@ -74,23 +81,36 @@ class ConfigService {
   private config: FullConfig | null = null;
   private pendingPatches = new Map<string, Record<string, unknown>>();
 
-  private getProjectChecksum(projectPath: string): string {
-    return createHash("sha256").update(resolve(projectPath)).digest("hex").slice(0, 16);
-  }
-
   init(argv: string[]): void {
     const args = this.parseArgs(argv);
     loadEnv(args.targetDir);
 
-    const wssConfigDir =
-      process.env.WSS_CONFIG_DIR || `${process.env.HOME}/.config/wssch`;
     const inSandbox = process.env.WSS_IN_SANDBOX === "true";
-    const projectChecksum = this.getProjectChecksum(args.targetDir);
+    const wssGlobalDir =
+      process.env.WSS_CONFIG_DIR || `${process.env.HOME}/.config/wssch`;
+
+    let wssConfigDir: string;
+    let profileId: string;
+
+    if (inSandbox) {
+      // Inside the sandbox the chosen profile dir is already mounted as the
+      // wssch root, so profiles are resolved without touching the registry.
+      wssConfigDir = `${process.env.HOME}/.config/wssch`;
+      profileId = process.env.WSS_PROFILE || "sandbox";
+    } else {
+      profileService.setGlobalDir(wssGlobalDir);
+      const active = profileService.resolveActive(args.profile);
+      profileService.setLastUsed(active.id);
+      wssConfigDir = `${wssGlobalDir}/${PROFILES_DIR}/${active.id}`;
+      profileId = active.id;
+    }
 
     const paths: PathsConfig = {
+      wssGlobalDir,
       wssConfigDir,
       wssBinDir: `${wssConfigDir}/bin`,
-      wssDataDir: `${wssConfigDir}/projects/${projectChecksum}`,
+      wssDataDir: `${wssConfigDir}/data`,
+      profileId,
     };
 
     this.config = { args, paths };
@@ -104,6 +124,9 @@ class ConfigService {
     let verbose = false;
     let force = false;
     let harnessOverride: string | null = process.env.WSS_HARNESS || null;
+    let profile: string | null = process.env.WSS_PROFILE || null;
+    let profileSub: string | null = null;
+    let profileSubArgs: string[] = [];
 
     const processed: string[] = [];
     for (let i = 0; i < args.length; i++) {
@@ -119,6 +142,8 @@ class ConfigService {
         case "db":
         case "orchestrate":
         case "orcs":
+        case "profile":
+        case "profiles":
           cmd = arg;
           break;
         case "--rtk-bin":
@@ -149,6 +174,12 @@ class ConfigService {
             i++;
           }
           break;
+        case "--profile":
+          if (next) {
+            profile = next;
+            i++;
+          }
+          break;
         case "--trust-hours":
           if (next) {
             whitelistHours = parseInt(next);
@@ -160,7 +191,13 @@ class ConfigService {
           printHelp();
           process.exit(0);
         default:
-          if (!arg.startsWith("-") && !processed.includes(arg)) {
+          if (arg.startsWith("-")) break;
+          if (processed.includes(arg)) break;
+          if (cmd === "profile" || cmd === "profiles") {
+            // Remaining positional tokens are profile subcommand + args.
+            if (!profileSub) profileSub = arg;
+            else profileSubArgs.push(arg);
+          } else {
             targetDir = resolve(arg);
           }
           processed.push(arg);
@@ -177,6 +214,9 @@ class ConfigService {
       rtkBin,
       debug: process.env.DEBUG === "1",
       harnessOverride,
+      profile,
+      profileSub,
+      profileSubArgs,
     };
   }
 

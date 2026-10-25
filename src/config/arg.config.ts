@@ -1,4 +1,4 @@
-export type Command = "run" | "init" | "status" | "deps" | "database" | "db" | "orchestrate" | "orcs";
+export type Command = "run" | "init" | "status" | "deps" | "database" | "db" | "orchestrate" | "orcs" | "profile" | "profiles";
 
 export interface ArgConfig {
   cmd: Command;
@@ -9,6 +9,9 @@ export interface ArgConfig {
   rtkBin: string | null;
   debug: boolean;
   harnessOverride: string | null;
+  profile: string | null;
+  profileSub: string | null;
+  profileSubArgs: string[];
 }
 
 export const DEFAULT_ARGS: ArgConfig = {
@@ -20,4 +23,7 @@ export const DEFAULT_ARGS: ArgConfig = {
   rtkBin: null,
   debug: false,
   harnessOverride: null,
+  profile: null,
+  profileSub: null,
+  profileSubArgs: [],
 };

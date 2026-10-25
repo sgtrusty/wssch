@@ -187,6 +187,39 @@ Config file writes are orchestrated by `configService` only:
 
 ---
 
+## Profiles
+
+Each invocation runs inside an **active profile** — an isolated workspace directory. All state that used to live directly under `~/.config/wssch` (the `config.db` preferences/whitelist DB, `rag.db`, `bin/`, `data/`, `rtk/`, harness `data/config` + `data/share`) now lives under `~/.config/wssch/profiles/<id>/`.
+
+### Layout
+```
+~/.config/wssch/            (wssGlobalDir — global, never per-profile)
+  profiles.json            global registry: { profiles, lastUsed }
+  profiles/
+    1/                     default profile dir
+      config.db            preferences + whitelist (per profile)
+      rag.db
+      bin/
+      data/                wssDataDir (mcp/, config/<harness>/, share/<harness>/)
+      rtk/
+    2/ ...                 additional profiles
+```
+
+### Key facts
+- **Global registry** `profiles.json` is owned by `profile.service.ts` (NOT the per-profile DB). It stores `profiles: Profile[]` (`id`, `name`, `isDefault`, `createdAt`, `description`) and `lastUsed`.
+- **`configService.init()`** resolves the active profile BEFORE building paths: `--profile <id|name>` (auto-creates if missing) → `lastUsed` → `isDefault`. It sets `paths.wssConfigDir` = `<wssGlobalDir>/profiles/<id>`, plus `wssBinDir`, `wssDataDir`, and `profileId`. `paths.wssGlobalDir` always points at the root.
+- **Last used & default**: `profileService.setLastUsed(id)` is called by `configService.init` on every host run. `setDefault(id)` flags a profile. Resolution precedence: explicit `--profile` > `lastUsed` > `isDefault`.
+- **Auto-create**: if `profiles.json` is absent, `profileService` creates profile `1` (name `default`, `isDefault`). **Legacy migration**: if the root already holds `config.db`/`rag.db`/`bin`/`data`/`rtk`/`config`/`share`/`projects`, those are moved into `profiles/1` so existing installs keep their data.
+- **Sandbox safety**: inside the sandbox (`WSS_IN_SANDBOX=true`), `configService.init` skips registry IO entirely — the host already bound the chosen profile dir to `/home/user/.config/wssch`, so `wssConfigDir` is just `${HOME}/.config/wssch`. `profileService` returns an in-memory single "sandbox" profile and never writes `profiles.json`. `bwrap.ts` forwards `WSS_PROFILE` so the active id is visible inside the sandbox.
+- **CLI**: `wssch profile` (or `profiles`) opens the interactive manager; `wssch profile list|create|use <id|name>|set-default <id|name>|delete <id|name>` for scripting; `wssch --profile <id|name> run ...` selects/creates a profile for a run. `src/ui/profile.ui.ts` holds the interactive UI.
+
+### Rules for profile work
+- Never hardcode the profile path — always read `configService.paths.wssConfigDir` (per-profile) for state and `configService.paths.wssGlobalDir` for global/registry access.
+- Add new per-profile state under `wssConfigDir`; add new global state under `wssGlobalDir`.
+- `profile.service.ts` must stay free of a `config.service` import (it computes its own global dir) to avoid a circular dependency.
+
+---
+
 ## Rules for Agents
 1. Always use `configService.paths` for path references - never hardcode directories
 2. Preserve existing `sqlite3` spawn pattern unless explicitly upgrading to in-process SQLite
